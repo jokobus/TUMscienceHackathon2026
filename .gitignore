@@ -35,6 +35,11 @@ wheels/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
+
+# The Python `lib/` rule above wrongly matches app source dirs named "lib".
+# Keep the Employee app's source tracked (it's TypeScript, not Python build output).
+!Employee_App_RN/src/lib/
+!Employee_App_RN/src/lib/**
 *.egg
 MANIFEST
 
