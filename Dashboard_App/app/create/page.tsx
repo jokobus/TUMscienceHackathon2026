@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { askOpportunityAssistant, createEvent, getOpportunities } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -11,13 +11,23 @@ import { Skeleton, EmptyState } from "@/components/ui/States";
 import { EVENT_TYPE_LABEL } from "@/lib/format";
 import type { AssistantReply, CreateEventInput, EventType } from "@/lib/types";
 
-const TABS = ["manual", "explorer"] as const;
+const TABS = ["assisted", "manual", "explorer"] as const;
 type Tab = (typeof TABS)[number];
 
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
 
 export default function CreatePage() {
-  const [tab, setTab] = useState<Tab>("manual");
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-5xl"><Skeleton className="h-96 w-full rounded-card" /></div>}>
+      <CreateContent />
+    </Suspense>
+  );
+}
+
+function CreateContent() {
+  const searchParams = useSearchParams();
+  const prefill = useMemo(() => prefillFromSearch(searchParams), [searchParams]);
+  const [tab, setTab] = useState<Tab>(searchParams.get("assistant") === "1" ? "assisted" : "manual");
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -28,6 +38,9 @@ export default function CreatePage() {
       />
 
       <div className="flex gap-1 rounded-md border border-we-line bg-we-surface p-1 text-sm">
+        <TabButton active={tab === "assisted"} onClick={() => setTab("assisted")}>
+          Assisted Build
+        </TabButton>
         <TabButton active={tab === "manual"} onClick={() => setTab("manual")}>
           Manual Event Creation
         </TabButton>
@@ -36,7 +49,9 @@ export default function CreatePage() {
         </TabButton>
       </div>
 
-      {tab === "manual" ? <ManualCreate /> : <OpportunityExplorer />}
+      {tab === "assisted" && <AssistedCreate prefill={prefill} reason={searchParams.get("reason") ?? ""} />}
+      {tab === "manual" && <ManualCreate prefill={prefill} />}
+      {tab === "explorer" && <OpportunityExplorer />}
     </div>
   );
 }
@@ -77,7 +92,7 @@ function ManualCreate({ prefill }: { prefill?: Partial<CreateEventInput> }) {
     target_group: prefill?.target_group ?? "",
     cost: undefined,
     human_capital: "",
-    partner_university: "",
+    partner_university: prefill?.partner_university ?? "",
   });
   const [busy, setBusy] = useState(false);
 
@@ -149,6 +164,197 @@ function ManualCreate({ prefill }: { prefill?: Partial<CreateEventInput> }) {
   );
 }
 
+function AssistedCreate({
+  prefill,
+  reason,
+}: {
+  prefill: Partial<CreateEventInput>;
+  reason: string;
+}) {
+  const router = useRouter();
+  const [form, setForm] = useState<CreateEventInput>({
+    title: prefill.title ?? "",
+    type: prefill.type ?? "technical_talk",
+    start_at: "",
+    end_at: "",
+    location: prefill.location ?? "",
+    city: prefill.city ?? prefill.location ?? "",
+    goal: reason || prefill.goal || "",
+    target_group: prefill.target_group ?? "",
+    cost: undefined,
+    human_capital: "",
+    partner_university: prefill.partner_university ?? "",
+  });
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const questions = [
+    { id: "date", label: "When should this happen?", field: "start_at" as const, placeholder: "e.g. early July, after exams" },
+    { id: "audience", label: "Who exactly should attend?", field: "target_group" as const, placeholder: "e.g. EE master students, embedded systems" },
+    { id: "format", label: "What should students do there?", field: "goal" as const, placeholder: "hands-on lab, tech talk, recruiting clinic" },
+    { id: "resources", label: "Which Wuerth team can host it?", field: "human_capital" as const, placeholder: "owner, experts, prep effort" },
+  ];
+
+  const baseCompleteness = [
+    form.title,
+    form.type,
+    form.location || form.city,
+    form.target_group,
+    form.goal,
+    form.start_at,
+    form.end_at,
+    form.human_capital,
+  ].filter(Boolean).length;
+  const progress = Math.min(100, Math.round((baseCompleteness / 8) * 100));
+  const nextQuestion = questions.find((q) => !answers[q.id]);
+
+  function set<K extends keyof CreateEventInput>(k: K, v: CreateEventInput[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function answerCurrent(value: string) {
+    if (!nextQuestion || !value.trim()) return;
+    setAnswers((a) => ({ ...a, [nextQuestion.id]: value.trim() }));
+    const field = nextQuestion.field;
+    set(field, value.trim() as CreateEventInput[typeof field]);
+    if (field === "start_at" && !form.end_at) {
+      set("end_at", value.trim());
+    }
+    setMessage("");
+  }
+
+  async function submit() {
+    setBusy(true);
+    const created = await createEvent(form);
+    setBusy(false);
+    router.push(`/events/${created.id}`);
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <Card>
+        <CardHeader
+          eyebrow="Assisted Create"
+          title="Draft event from recommendation"
+          subtitle="The recommendation becomes a prefilled manual build. The assistant asks only for missing planning context."
+        />
+        <CardBody className="space-y-5">
+          <div>
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="font-semibold text-we-ink">Event readiness</span>
+              <span className="tnum font-semibold text-we-red">{progress}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-we-canvas">
+              <div className="h-full bg-we-red transition-all duration-300" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Title" full>
+              <input className={inputCls} value={form.title} onChange={(e) => set("title", e.target.value)} />
+            </Field>
+            <Field label="Type">
+              <select className={inputCls} value={form.type} onChange={(e) => set("type", e.target.value as EventType)}>
+                {EVENT_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {EVENT_TYPE_LABEL[t]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Location">
+              <input className={inputCls} value={form.location} onChange={(e) => set("location", e.target.value)} />
+            </Field>
+            <Field label="Target group">
+              <input className={inputCls} value={form.target_group} onChange={(e) => set("target_group", e.target.value)} />
+            </Field>
+            <Field label="Partner / University">
+              <input className={inputCls} value={form.partner_university} onChange={(e) => set("partner_university", e.target.value)} />
+            </Field>
+            <Field label="Start">
+              <input type="datetime-local" className={inputCls} value={form.start_at} onChange={(e) => set("start_at", e.target.value)} />
+            </Field>
+            <Field label="End">
+              <input type="datetime-local" className={inputCls} value={form.end_at} onChange={(e) => set("end_at", e.target.value)} />
+            </Field>
+            <Field label="Goal" full>
+              <textarea rows={3} className={inputCls} value={form.goal} onChange={(e) => set("goal", e.target.value)} />
+            </Field>
+            <Field label="Human capital" full>
+              <textarea rows={2} className={inputCls} value={form.human_capital} onChange={(e) => set("human_capital", e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="flex justify-end">
+            <Button type="button" onClick={submit} disabled={busy || progress < 65}>
+              {busy ? "Creating..." : "Create planned event"}
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card className="h-fit">
+        <CardHeader title="Assistant" subtitle="Clarifies the missing 20% before the event is created." />
+        <CardBody className="space-y-4">
+          {reason && (
+            <div className="rounded-card border border-we-line bg-we-canvas p-3">
+              <div className="eyebrow mb-1">Why recommended</div>
+              <p className="text-sm leading-relaxed text-we-slate">{reason}</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <AssistantBubble>
+              {nextQuestion
+                ? nextQuestion.label
+                : "This is ready enough to create. You can still adjust the draft before submitting."}
+            </AssistantBubble>
+            {nextQuestion && (
+              <form
+                className="flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  answerCurrent(message);
+                }}
+              >
+                <input
+                  className={inputCls}
+                  placeholder={nextQuestion.placeholder}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+                <Button type="submit" variant="secondary">
+                  Add
+                </Button>
+              </form>
+            )}
+          </div>
+
+          <div className="space-y-2 border-t border-we-line pt-4">
+            {questions.map((q) => (
+              <div key={q.id} className="flex items-start justify-between gap-3 text-sm">
+                <span className="text-we-muted">{q.label}</span>
+                <span className={`text-right font-semibold ${answers[q.id] ? "text-we-ink" : "text-we-faint"}`}>
+                  {answers[q.id] ? "Set" : "Open"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
+    </div>
+  );
+}
+
+function AssistantBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-card border border-we-line bg-white p-4 text-sm leading-relaxed text-we-ink shadow-card">
+      {children}
+    </div>
+  );
+}
+
 const inputCls =
   "w-full rounded-md border border-we-line bg-we-canvas px-3 py-2 text-sm outline-none focus:border-we-red focus:bg-we-surface";
 
@@ -159,6 +365,26 @@ function Field({ label, children, full }: { label: string; children: React.React
       {children}
     </label>
   );
+}
+
+function prefillFromSearch(params: Pick<URLSearchParams, "get">): Partial<CreateEventInput> {
+  const type = params.get("type");
+  const location = params.get("location") ?? "";
+  const targetGroup = params.get("target_group") ?? "";
+
+  return {
+    title: params.get("title") ?? "",
+    type: isEventType(type) ? type : undefined,
+    location,
+    city: location,
+    target_group: targetGroup,
+    partner_university: targetGroup,
+    goal: params.get("reason") ?? "",
+  };
+}
+
+function isEventType(value: string | null): value is EventType {
+  return !!value && EVENT_TYPES.includes(value as EventType);
 }
 
 // ── 3.3 Opportunity Explorer + LLM assistant ─────────────────────────────────

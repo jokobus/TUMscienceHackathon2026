@@ -9,7 +9,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-card border border-we-line bg-we-surface ${className}`}
+      className={`rounded-card border border-we-line bg-we-surface shadow-card ${className}`}
     >
       {children}
     </div>
@@ -28,10 +28,10 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-we-line px-6 py-5">
+    <div className="flex items-start justify-between gap-5 border-b border-we-line px-6 py-5">
       <div>
         {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
-        <h3 className="font-display text-lg font-medium leading-snug text-we-ink">
+        <h3 className="text-lg font-bold leading-snug tracking-normal text-we-ink">
           {title}
         </h3>
         {subtitle && (

@@ -1,36 +1,19 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { TopNav } from "@/components/shell/TopNav";
 import { Assistant } from "@/components/shell/Assistant";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-// Editorial serif display — the identity face, used for big moments only.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-// Mono for all numbers, eyebrows and metadata.
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500", "600"],
+  variable: "--font-inter",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "WEave — Würth Control Center",
+  title: "WEave - Würth Control Center",
   description:
-    "Event Intelligence & Relationship-ROI control center for Würth Elektronik.",
+    "Event Intelligence & Relationship-ROI control center for Wuerth Elektronik.",
 };
 
 export default function RootLayout({
@@ -39,10 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${fraunces.variable} ${plexMono.variable}`}
-    >
+    <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased">
         <div className="flex h-screen flex-col overflow-hidden">
           <TopNav />

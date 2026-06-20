@@ -4,9 +4,8 @@ import { SectionLabel } from "@/components/ui/PageHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { NextBestEvents } from "@/components/dashboard/NextBestEvents";
-import { TimelineGantt } from "@/components/dashboard/TimelineGantt";
 import { KpiGrid } from "@/components/dashboard/KpiGrid";
-import { EventTable } from "@/components/events/EventTable";
+import { EventCards } from "@/components/events/EventCards";
 import { getDashboardKpis } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 
@@ -34,27 +33,19 @@ export default function DashboardPage() {
       {/* ── Key figures — number-first, directly under the headline ── */}
       <Reveal as="section" className="mb-16">
         <KpiGrid kpis={kpis} loading={loading} />
+        <NextBestEvents />
       </Reveal>
 
       {/* ── 01 Performance + recommendations (asymmetric 8/4) ── */}
       <Reveal as="section" className="mb-16">
-        <SectionLabel index="01" title="Performance" hint="Relationship & brand, not commercial" />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.9fr_1fr]">
-          <PerformanceChart />
-          <NextBestEvents />
-        </div>
+        <SectionLabel index="02" title="Performance" hint="Relationship & brand, not commercial" />
+        <PerformanceChart />
       </Reveal>
 
-      {/* ── 02 Timeline ── */}
-      <Reveal as="section" className="mb-16">
-        <SectionLabel index="02" title="Timeline" hint="Prep · event · follow-up windows" />
-        <TimelineGantt />
-      </Reveal>
-
-      {/* ── 03 All events ── */}
+      {/* ── 02 Events ── */}
       <Reveal as="section" className="mb-4">
-        <SectionLabel index="03" title="All events" hint="Click to open the detail view" />
-        <EventTable />
+        <SectionLabel index="03" title="Events" hint="Cards or timeline" />
+        <EventCards />
       </Reveal>
     </div>
   );
