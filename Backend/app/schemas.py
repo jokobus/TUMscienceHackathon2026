@@ -92,7 +92,8 @@ class EventSummaryOut(Schema):
     attendee_count: int
     health: str | None = None
     is_owner: bool = False
-    images: list[str] | None = None
+    relationship_roi: int = 0
+    image_url: str | None = None
 
 
 class EventDetailOut(EventSummaryOut):

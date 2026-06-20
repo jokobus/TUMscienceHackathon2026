@@ -60,7 +60,8 @@ def build_event_summary(db: Session, event: Event, viewer_id: str | None, kpis: 
         "attendee_count": kpis["checked_in"] or kpis["registered"],
         "health": health,
         "is_owner": is_owner,
-        "images": event.images or [],
+        "relationship_roi": kpis.get("qualified_leads", 0),
+        "image_url": event.images[0] if event.images else None,
     }
 
 
