@@ -1,26 +1,6 @@
 # WEave — Master Specification & Shared Contract
 
 > **TUM Science Hackathon · Würth Elektronik Challenge**
-> This file lives in the **project root**. It is the single source of truth for everything **shared** across the three clients and the backend: architecture, data-transmission rules, the database schema, the complete endpoint catalogue, the WebSocket protocol, the engagement-scoring logic, and the module-ownership map.
->
-> **How to use this with multiple agents:** Every agent reads (a) this master file for the shared contract and (b) its own module file in `/agents/`. Agents must never invent endpoint names, field names, or enums — they come from here. If something is missing, add it here first, then implement.
-
----
-
-## 0. Resolved Conflicts (nothing removed in intent — only contradictions reconciled)
-
-| # | Original conflict | Resolution |
-|---|-------------------|------------|
-| 1 | Scan was described **both** as a center tab ("5 tabs, camera bigger in the middle") **and** as a "persistent FAB bottom-right, not a tab". | **Scan/Camera = center item of the 5-tab Bottom Bar** (larger, middle) — the most recent explicit decision. The **bottom-right FAB is reserved for the "Current Event" quick-access** (a separate, well-defined feature that only appears during a live registered event). This avoids two colliding bottom-right buttons. |
-| 2 | Tab count stated as 4 ("Feed-Requests-Chat-Profile") in an earlier pass and 5 ("Feed-Requests-Camera-Chat-Profile") later. | **5 tabs** (current decision). |
-| 3 | Employee app: "Past Event Detailed" used the **same path** as "Current Event Detailed" (`/internal/{eventID}/current-event-detail`). | Unified into **`GET /internal/events/{eventId}`**, which returns an `analysis` (KPI) block when the event status is `ongoing` or `past`. No duplicate paths. |
-| 4 | Login + scan-intention block was duplicated and contained a typo run-on ("webpageRequires"). | Consolidated into **one** canonical login/scan flow (see §6 Auth + Student module). |
-| 5 | Dashboard referenced a page "Invoices". | Renamed to **Communication Hub** (already noted in source). |
-| 6 | "Engagementscore Logik fehlt noch." | **Defined** in §8 (backend-only, point-based, students never see a numeric score). |
-| 7 | `/internal/{employeeID}/events-overview` only covered "events I'm involved in", but the dashboard needs all events. | Both exist: **`GET /internal/employees/{employeeId}/events`** (mine) and **`GET /internal/events`** (all). |
-| 8 | Guest "provides only email" vs. "applications work as guest". | Consistent: guest = email only, application captures that email. Guest still **cannot** chat or post a public Memory (see §6). |
-
----
 
 ## 1. System Architecture
 
