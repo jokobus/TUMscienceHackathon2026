@@ -16,6 +16,8 @@ import {
   fmtDateTime,
 } from "@/lib/format";
 
+import { LightGCNPanel } from "@/components/students/LightGCNPanel";
+
 export default function StudentDetailPage({
   params,
 }: {
@@ -123,6 +125,19 @@ export default function StudentDetailPage({
           </CardBody>
         </Card>
       </div>
+      
+      {/* LightGCN recommendations */}
+      {s && (
+        <Card>
+          <CardHeader
+            title="Event Recommendations"
+            /*subtitle="by LightGCN"*/
+          />
+          <CardBody>
+            <LightGCNPanel studentId={studentId} />
+          </CardBody>
+        </Card>
+      )} 
 
       {/* Open follow-ups */}
       {s && s.open_follow_ups.length > 0 && (

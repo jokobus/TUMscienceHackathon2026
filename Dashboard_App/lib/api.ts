@@ -405,3 +405,34 @@ export async function askAssistant(prompt: string): Promise<AssistantTurn> {
     return { answer: "The assistant is unavailable right now.", actions: [] };
   }
 }
+
+// ── LightGCN recommendations (append to bottom of lib/api.ts) ────────────────
+// Also add `LightGCNResult` to the existing import from "@/lib/types" at the top.
+
+import type { LightGCNResult } from "@/lib/types";
+
+/**
+ * Recommendations for a single student. Always hits the Next.js API route
+ * (which runs LightGCN on MOCK_STUDENTS/MOCK_EVENTS), so this works
+ * identically in mock mode and backend mode — no USE_MOCKS branch needed.
+ */
+export async function getStudentRecommendations(
+  studentId: string
+): Promise<LightGCNResult> {
+  const res = await fetch(
+    `/api/recommendations?studentId=${encodeURIComponent(studentId)}`
+  );
+  if (!res.ok)
+    throw new Error(`Recommendations API: ${res.status} ${res.statusText}`);
+  return res.json() as Promise<LightGCNResult>;
+}
+
+/**
+ * Top-K recommendations for every student — used by the dashboard widget.
+ */
+export async function getAllRecommendations(): Promise<LightGCNResult[]> {
+  const res = await fetch("/api/recommendations");
+  if (!res.ok)
+    throw new Error(`Recommendations API: ${res.status} ${res.statusText}`);
+  return res.json() as Promise<LightGCNResult[]>;
+}
