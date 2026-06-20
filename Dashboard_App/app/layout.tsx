@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { TopNav } from "@/components/shell/TopNav";
+import { Assistant } from "@/components/shell/Assistant";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -21,8 +22,10 @@ export default function RootLayout({
       <body className="font-sans">
         <div className="flex h-screen flex-col overflow-hidden">
           <TopNav />
-          <main className="flex-1 overflow-y-auto px-6 py-6">{children}</main>
+          {/* pb leaves room for the bottom-docked assistant bar */}
+          <main className="flex-1 overflow-y-auto px-6 pb-24 pt-6">{children}</main>
         </div>
+        <Assistant />
       </body>
     </html>
   );

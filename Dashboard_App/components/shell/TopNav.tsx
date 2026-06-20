@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Assistant } from "./Assistant";
 import { USE_MOCKS } from "@/lib/api";
 
 /** Main navigation — 4 core pages (AGENT App-Shell). Student Detail is a drilldown. */
@@ -17,7 +16,7 @@ export function TopNav() {
   const pathname = usePathname();
 
   return (
-    <header className="relative z-40 grid h-14 grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-we-line bg-we-surface px-5">
+    <header className="relative z-40 flex h-14 items-center justify-between gap-4 border-b border-we-line bg-we-surface px-5">
       {/* Left cluster: logo + nav tabs next to it */}
       <div className="flex items-center gap-5">
         <Link href="/dashboard" className="flex items-center gap-2.5">
@@ -51,11 +50,6 @@ export function TopNav() {
             );
           })}
         </nav>
-      </div>
-
-      {/* Centered assistant pill (single instance, centered via the grid's middle column) */}
-      <div className="flex justify-center">
-        <Assistant />
       </div>
 
       {/* Right cluster: mock pill + avatar */}
