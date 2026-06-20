@@ -3,7 +3,7 @@ node_modules
 .next
 
 # environment variables
-.env*.local
+*.env*.local
 .env
 
 # Database
