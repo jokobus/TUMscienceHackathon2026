@@ -47,7 +47,7 @@ export function NotificationCard({
 
   if (item.eventId) {
     return (
-      <Link href={`/events/${item.eventId}`} onClick={() => onOpen?.(item)}>
+      <Link href={`/events/${item.eventId}`} onClick={() => onOpen?.(item)} className="block">
         {inner}
       </Link>
     );

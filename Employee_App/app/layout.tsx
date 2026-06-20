@@ -29,11 +29,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body>
-        <AuthProvider>
-          <ToastProvider>
-            <div className="app-shell">{children}</div>
-          </ToastProvider>
-        </AuthProvider>
+        <div className="device-stage">
+          <div className="device-frame">
+            <div id="weave-phone-screen" className="device-screen">
+              <AuthProvider>
+                <ToastProvider>
+                  <div className="app-shell">{children}</div>
+                </ToastProvider>
+              </AuthProvider>
+            </div>
+            <span className="device-notch" aria-hidden />
+          </div>
+        </div>
       </body>
     </html>
   );

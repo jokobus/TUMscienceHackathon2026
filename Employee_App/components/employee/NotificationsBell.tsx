@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, Inbox, X } from "lucide-react";
 import type { NotificationItem } from "@/lib/types";
 import * as api from "@/lib/api";
@@ -11,8 +12,11 @@ import { NotificationCard } from "@/components/employee/NotificationCard";
 
 export function NotificationsBell() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     api.getNotifications().then((n) => {
@@ -45,8 +49,8 @@ export function NotificationsBell() {
         <Badge count={unread} className="absolute right-1 top-1" />
       </IconButton>
 
-      {open && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+      {open && mounted && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end justify-center">
           <div
             className="absolute inset-0 bg-wuerth-ink/45 animate-fade-in"
             onClick={() => setOpen(false)}
@@ -86,7 +90,7 @@ export function NotificationsBell() {
               {items.length === 0 ? (
                 <EmptyState icon={Inbox} title="All clear" description="No notifications right now." />
               ) : (
-                <div className="space-y-8">
+                <div className="space-y-6">
                   {items.map((item) => (
                     <NotificationCard key={item.id} item={item} onOpen={() => setOpen(false)} />
                   ))}
@@ -94,7 +98,8 @@ export function NotificationsBell() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.getElementById("weave-phone-screen") ?? document.body
       )}
     </>
   );

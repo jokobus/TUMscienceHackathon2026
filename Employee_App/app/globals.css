@@ -19,11 +19,49 @@ body {
   overscroll-behavior: none;
 }
 
-/* The whole app lives in a centered phone-width column so it looks like a
-   native mobile app on desktop and fills the screen on a phone. It is pinned to
-   the viewport height and never scrolls as a whole — only inner regions do. */
+/* The app fills its screen (the phone on desktop, the viewport on mobile) and
+   never scrolls as a whole — only inner regions do. */
 .app-shell {
-  @apply mx-auto flex h-dvh w-full max-w-app flex-col overflow-hidden bg-wuerth-bg shadow-pop;
+  @apply flex h-full w-full flex-col overflow-hidden bg-wuerth-bg;
+}
+
+/* ── Device mockup ──────────────────────────────────────────────────────────
+   On a phone the app fills the viewport. On wider screens it is framed in a
+   smartphone casing so it reads as a demo. The screen sets `transform`, which
+   makes it the containing block for the app's fixed/sticky overlays — so sheets,
+   toasts and the FAB stay inside the phone instead of escaping to the window. */
+.device-stage {
+  @apply flex h-dvh w-full items-center justify-center;
+  background: #0d0d0f;
+}
+.device-frame {
+  @apply relative flex h-full w-full flex-col overflow-hidden bg-black;
+}
+.device-screen {
+  @apply relative flex h-full w-full flex-col overflow-hidden bg-wuerth-bg;
+  transform: translate(0, 0);
+}
+.device-notch {
+  @apply hidden;
+}
+
+@media (min-width: 480px) {
+  .device-stage {
+    @apply p-6;
+    background: radial-gradient(120% 120% at 50% -10%, #303036 0%, #161619 55%, #0c0c0e 100%);
+  }
+  .device-frame {
+    height: min(58rem, 94dvh);
+    width: min(27rem, 100vw);
+    @apply rounded-[3rem] border-[14px] border-neutral-950;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.85), 0 0 0 2px rgba(255, 255, 255, 0.04) inset;
+  }
+  .device-screen {
+    @apply rounded-[1.9rem];
+  }
+  .device-notch {
+    @apply absolute left-1/2 top-2 z-[80] block h-7 w-28 -translate-x-1/2 rounded-full bg-black;
+  }
 }
 
 /* Hide scrollbars for horizontal chip rows / segmented controls */
