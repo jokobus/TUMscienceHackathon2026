@@ -1,0 +1,42 @@
+# WEave — backend + Postgres (best-practice local + demo stack).
+#   docker compose up --build      → API on http://localhost:8000 (docs at /docs)
+# The DB is Postgres (the contract's Postgres-ready target); data persists in a volume.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: weave
+      POSTGRES_PASSWORD: weave
+      POSTGRES_DB: weave
+    ports:
+      # Host 5433 → container 5432 (avoids clashing with a local Postgres on 5432).
+      - "5433:5432"
+    volumes:
+      - weave_pgdata:/var/lib/postgresql/data
+      # Raw DDL is applied automatically on first init (in addition to ORM create_all).
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weave -d weave"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://weave:weave@db:5432/weave
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+
+volumes:
+  weave_pgdata:
