@@ -48,18 +48,12 @@ export function EventCards() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="we-line mb-3" />
-          <p className="max-w-xl text-sm leading-relaxed text-we-muted">
-            Switch between full event cards and a compact chronological line.
-          </p>
-        </div>
-        <div className="flex shrink-0 rounded-card border border-we-line bg-white p-1 shadow-card">
+      <div className="flex justify-center">
+        <div className="grid w-full max-w-xl grid-cols-2 rounded-card border border-we-line bg-white p-1 shadow-card">
           <button
             type="button"
             onClick={() => setView("cards")}
-            className={`rounded-tag px-3 py-1.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
+            className={`rounded-tag px-4 py-3 text-center text-xl font-bold transition-all duration-200 active:scale-95 ${
               view === "cards" ? "bg-we-ink text-white" : "text-we-muted hover:text-we-ink"
             }`}
           >
@@ -68,7 +62,7 @@ export function EventCards() {
           <button
             type="button"
             onClick={() => setView("timeline")}
-            className={`rounded-tag px-3 py-1.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
+            className={`rounded-tag px-4 py-3 text-center text-xl font-bold transition-all duration-200 active:scale-95 ${
               view === "timeline" ? "bg-we-ink text-white" : "text-we-muted hover:text-we-ink"
             }`}
           >

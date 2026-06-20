@@ -1,10 +1,7 @@
 "use client";
 
-import { SectionLabel } from "@/components/ui/PageHeader";
 import { Reveal } from "@/components/ui/Reveal";
-import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
-import { NextBestEvents } from "@/components/dashboard/NextBestEvents";
-import { KpiGrid } from "@/components/dashboard/KpiGrid";
+import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { EventCards } from "@/components/events/EventCards";
 import { getDashboardKpis } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -30,21 +27,13 @@ export default function DashboardPage() {
         </h1>
       </header>
 
-      {/* ── Key figures — number-first, directly under the headline ── */}
+      {/* ── 01 Global KPIs / Performance alternative ── */}
       <Reveal as="section" className="mb-16">
-        <KpiGrid kpis={kpis} loading={loading} />
-        <NextBestEvents />
-      </Reveal>
-
-      {/* ── 01 Performance + recommendations (asymmetric 8/4) ── */}
-      <Reveal as="section" className="mb-16">
-        <SectionLabel index="02" title="Performance" hint="Relationship & brand, not commercial" />
-        <PerformanceChart />
+        <DashboardInsights kpis={kpis} loading={loading} />
       </Reveal>
 
       {/* ── 02 Events ── */}
       <Reveal as="section" className="mb-4">
-        <SectionLabel index="03" title="Events" hint="Cards or timeline" />
         <EventCards />
       </Reveal>
     </div>

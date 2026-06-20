@@ -13,12 +13,18 @@ export function NextBestEvents() {
 
   if (loading) {
     return (
-      <div className="-mt-px grid grid-cols-1 overflow-visible rounded-b-card border border-we-line bg-white shadow-card lg:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="border-t border-we-line p-3 lg:border-l lg:border-t-0 first:lg:border-l-0">
-            <Skeleton className="h-10 w-full rounded-tag" />
-          </div>
-        ))}
+      <div className="mt-3">
+        <div className="mb-2 flex items-center gap-3">
+          <div className="we-line h-[2px] w-7" />
+          <div className="text-[11px] font-bold uppercase tracking-eyebrow text-we-muted">Best next actions</div>
+        </div>
+        <div className="grid grid-cols-1 overflow-visible rounded-card border border-we-line bg-white shadow-card lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="border-t border-we-line p-3 first:border-t-0 lg:border-l lg:border-t-0 first:lg:border-l-0">
+              <Skeleton className="h-10 w-full rounded-tag" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -28,10 +34,16 @@ export function NextBestEvents() {
   }
 
   return (
-    <div className="-mt-px grid grid-cols-1 overflow-visible rounded-b-card border border-we-line bg-white shadow-card lg:grid-cols-3">
-      {data.slice(0, 3).map((event, index) => (
-        <RecommendationCard key={event.id} event={event} index={index} />
-      ))}
+    <div className="mt-3">
+      <div className="mb-2 flex items-center gap-3">
+        <div className="we-line h-[2px] w-7" />
+        <div className="text-[11px] font-bold uppercase tracking-eyebrow text-we-muted">Best next actions</div>
+      </div>
+      <div className="grid grid-cols-1 overflow-visible rounded-card border border-we-line bg-white shadow-card lg:grid-cols-3">
+        {data.slice(0, 3).map((event, index) => (
+          <RecommendationCard key={event.id} event={event} index={index} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -42,7 +54,7 @@ function RecommendationCard({ event, index }: { event: NextBestEvent; index: num
   return (
     <Link
       href={href}
-      className="group relative z-10 min-h-[68px] border-t border-we-line bg-white px-4 py-3 transition-colors duration-200 hover:z-20 hover:bg-we-canvas focus:outline-none focus-visible:ring-2 focus-visible:ring-we-red lg:border-l lg:border-t-0 first:lg:border-l-0"
+      className="group relative z-10 min-h-[68px] border-t border-we-line bg-white px-4 py-3 transition-colors duration-200 first:border-t-0 hover:z-20 hover:bg-we-canvas focus:outline-none focus-visible:ring-2 focus-visible:ring-we-red lg:border-l lg:border-t-0 first:lg:border-l-0"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">

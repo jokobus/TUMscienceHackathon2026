@@ -11,7 +11,7 @@ import { Skeleton, EmptyState } from "@/components/ui/States";
 import { EVENT_TYPE_LABEL } from "@/lib/format";
 import type { AssistantReply, CreateEventInput, EventType } from "@/lib/types";
 
-const TABS = ["assisted", "manual", "explorer"] as const;
+const TABS = ["manual", "explorer"] as const;
 type Tab = (typeof TABS)[number];
 
 const EVENT_TYPES = Object.keys(EVENT_TYPE_LABEL) as EventType[];
@@ -27,7 +27,8 @@ export default function CreatePage() {
 function CreateContent() {
   const searchParams = useSearchParams();
   const prefill = useMemo(() => prefillFromSearch(searchParams), [searchParams]);
-  const [tab, setTab] = useState<Tab>(searchParams.get("assistant") === "1" ? "assisted" : "manual");
+  const reason = searchParams.get("reason") ?? "";
+  const [tab, setTab] = useState<Tab>("manual");
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -38,19 +39,15 @@ function CreateContent() {
       />
 
       <div className="flex gap-1 rounded-md border border-we-line bg-we-surface p-1 text-sm">
-        <TabButton active={tab === "assisted"} onClick={() => setTab("assisted")}>
-          Assisted Build
-        </TabButton>
         <TabButton active={tab === "manual"} onClick={() => setTab("manual")}>
-          Manual Event Creation
+          Build Event
         </TabButton>
         <TabButton active={tab === "explorer"} onClick={() => setTab("explorer")}>
           Opportunity Explorer
         </TabButton>
       </div>
 
-      {tab === "assisted" && <AssistedCreate prefill={prefill} reason={searchParams.get("reason") ?? ""} />}
-      {tab === "manual" && <ManualCreate prefill={prefill} />}
+      {tab === "manual" && <BuildEvent prefill={prefill} reason={reason} />}
       {tab === "explorer" && <OpportunityExplorer />}
     </div>
   );
@@ -164,7 +161,7 @@ function ManualCreate({ prefill }: { prefill?: Partial<CreateEventInput> }) {
   );
 }
 
-function AssistedCreate({
+function BuildEvent({
   prefill,
   reason,
 }: {
@@ -235,9 +232,9 @@ function AssistedCreate({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
       <Card>
         <CardHeader
-          eyebrow="Assisted Create"
-          title="Draft event from recommendation"
-          subtitle="The recommendation becomes a prefilled manual build. The assistant asks only for missing planning context."
+          eyebrow="Build Event"
+          title="New Event"
+          subtitle="Recommendations prefill what they know. The chat asks follow-up questions and updates this build."
         />
         <CardBody className="space-y-5">
           <div>
@@ -295,7 +292,7 @@ function AssistedCreate({
       </Card>
 
       <Card className="h-fit">
-        <CardHeader title="Assistant" subtitle="Clarifies the missing 20% before the event is created." />
+        <CardHeader title="Planning Chat" subtitle="Answers here fill the event draft on the left." />
         <CardBody className="space-y-4">
           {reason && (
             <div className="rounded-card border border-we-line bg-we-canvas p-3">

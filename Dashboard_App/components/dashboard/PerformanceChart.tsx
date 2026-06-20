@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -13,9 +13,8 @@ import {
 } from "recharts";
 import { getDashboardPerformance } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/States";
-import { DIMENSION_LABEL, EVENT_HEALTH_TONE } from "@/lib/format";
+import { DIMENSION_LABEL } from "@/lib/format";
 import type { PerformanceDimension } from "@/lib/types";
 
 const DIMENSIONS: PerformanceDimension[] = [
@@ -31,85 +30,131 @@ const DIMENSIONS: PerformanceDimension[] = [
   "health",
 ];
 
-const TONE_FILL: Record<string, string> = {
-  good: "#2F7D57",
-  warn: "#9A6B16",
-  risk: "#CC1122",
-  info: "#3F5A73",
-  neutral: "#C7C2B6",
-};
-
-/** Graphical event-performance control center (AGENT §1.2). */
 export function PerformanceChart() {
   const [dimension, setDimension] = useState<PerformanceDimension>("relationship_roi");
+  const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null);
   const { data, loading } = useAsync(() => getDashboardPerformance(dimension), [dimension]);
 
+  const allIds = useMemo(() => data?.points.map((p) => p.event_id) ?? [], [data]);
+  const visiblePoints = useMemo(() => {
+    if (!data) return [];
+    if (!selectedIds) return data.points;
+    return data.points.filter((p) => selectedIds.has(p.event_id));
+  }, [data, selectedIds]);
+
+  function toggleEvent(eventId: string) {
+    const base = selectedIds ? new Set(selectedIds) : new Set(allIds);
+    if (base.has(eventId)) base.delete(eventId);
+    else base.add(eventId);
+    if (base.size === 0) {
+      setSelectedIds(null);
+      return;
+    }
+    setSelectedIds(base.size === allIds.length ? null : base);
+  }
+
   return (
-    <Card>
-      <CardHeader
-        eyebrow="Comparison"
-        title="Event Performance"
-        subtitle="Compare events on relationship & brand performance — not only commercial results."
-        action={
-          <select
-            value={dimension}
-            onChange={(e) => setDimension(e.target.value as PerformanceDimension)}
-            className="rounded-tag border border-we-line-strong bg-we-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-we-slate outline-none transition-colors hover:border-we-ink focus:border-we-ink"
-          >
-            {DIMENSIONS.map((d) => (
-              <option key={d} value={d}>
-                {DIMENSION_LABEL[d]}
-              </option>
-            ))}
-          </select>
-        }
-      />
-      <CardBody>
-        {loading || !data ? (
-          <Skeleton className="h-[300px] w-full" />
-        ) : (
-          <>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-we-ink">Event Performance</h3>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-we-muted">
+            Select events and compare one relationship metric. Emphasis comes from selection, not color coding.
+          </p>
+        </div>
+        <select
+          value={dimension}
+          onChange={(e) => setDimension(e.target.value as PerformanceDimension)}
+          className="rounded-tag border border-we-line-strong bg-white px-3 py-2 text-[12px] font-semibold text-we-slate outline-none transition-colors hover:border-we-ink focus:border-we-ink"
+        >
+          {DIMENSIONS.map((d) => (
+            <option key={d} value={d}>
+              {DIMENSION_LABEL[d]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {loading || !data ? (
+        <Skeleton className="h-[360px] w-full" />
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedIds(null)}
+              className={`rounded-tag border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                selectedIds === null
+                  ? "border-we-ink bg-we-ink text-white"
+                  : "border-we-line bg-white text-we-muted hover:border-we-line-strong hover:text-we-ink"
+              }`}
+            >
+              All events
+            </button>
+            {data.points.map((point) => {
+              const active = selectedIds === null || selectedIds.has(point.event_id);
+              return (
+                <button
+                  key={point.event_id}
+                  type="button"
+                  onClick={() => toggleEvent(point.event_id)}
+                  className={`rounded-tag border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                    active
+                      ? "border-we-line-strong bg-white text-we-ink"
+                      : "border-we-line bg-we-canvas text-we-faint hover:text-we-muted"
+                  }`}
+                >
+                  {point.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="rounded-card border border-we-line bg-white p-4">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.points} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#E7E3D9" vertical={false} />
+                <BarChart data={visiblePoints} margin={{ top: 10, right: 10, bottom: 8, left: -18 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#E1E5EA" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: "#8B887E", fontFamily: "var(--font-mono)" }}
+                    tick={{ fontSize: 11, fill: "#6F7480", fontFamily: "var(--font-inter)" }}
                     tickLine={false}
-                    axisLine={{ stroke: "#E7E3D9" }}
+                    axisLine={{ stroke: "#E1E5EA" }}
                     interval={0}
-                    angle={-12}
+                    angle={-10}
                     textAnchor="end"
                     height={48}
                   />
-                  <YAxis tick={{ fontSize: 11, fill: "#8B887E", fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#6F7480", fontFamily: "var(--font-inter)" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <Tooltip
-                    cursor={{ fill: "rgba(27,26,24,0.04)" }}
+                    cursor={{ fill: "rgba(26,26,30,0.035)" }}
                     contentStyle={{
-                      borderRadius: 6,
-                      border: "1px solid #E7E3D9",
+                      borderRadius: 10,
+                      border: "1px solid #E1E5EA",
                       fontSize: 12,
-                      fontFamily: "var(--font-mono)",
-                      boxShadow: "0 10px 30px -12px rgba(27,26,24,0.18)",
+                      color: "#1A1A1E",
+                      boxShadow: "0 10px 24px -18px rgba(16,24,40,0.22)",
                     }}
                     formatter={(v: number) => [`${v} ${data.unit}`, DIMENSION_LABEL[data.dimension]]}
                   />
-                  <Bar dataKey="value" radius={[3, 3, 0, 0]} maxBarSize={48}>
-                    {data.points.map((p) => (
-                      <Cell key={p.event_id} fill={TONE_FILL[EVENT_HEALTH_TONE[p.health]]} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={52}>
+                    {visiblePoints.map((point, index) => (
+                      <Cell
+                        key={point.event_id}
+                        fill="#CC0000"
+                      />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-xs text-we-muted">
-              Bar colour reflects event-health classification. A smaller technical workshop can
-              outperform a large fair on relationship metrics.
-            </p>
-          </>
-        )}
-      </CardBody>
-    </Card>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
