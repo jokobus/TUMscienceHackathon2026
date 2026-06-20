@@ -11,7 +11,6 @@ import {
   getHostReport,
 } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/States";
@@ -31,6 +30,7 @@ import {
   fmtDate,
   fmtDateTime,
 } from "@/lib/format";
+import type { EventDetail } from "@/lib/types";
 
 export default function EventDetailPage({
   params,
@@ -46,74 +46,35 @@ export default function EventDetailPage({
   const isPlannedLike = ev && ["planned", "upcoming", "draft"].includes(ev.status);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <Link href="/dashboard" className="text-xs text-we-muted hover:text-we-red">
-        ← Back to dashboard
+    <div className="mx-auto max-w-7xl space-y-7">
+      <Link href="/dashboard" className="inline-flex text-xs font-semibold text-we-muted hover:text-we-red">
+        {"<- Back to dashboard"}
       </Link>
 
-      <PageHeader
-        title={loading || !ev ? "Loading…" : ev.title}
-        subtitle={
-          ev ? `${EVENT_TYPE_LABEL[ev.type]} · ${ev.city ?? ev.location ?? ""} · ${fmtDate(ev.start_at)}` : undefined
-        }
-        action={
-          ev ? (
-            <div className="flex items-center gap-2">
-              <Badge tone={EVENT_STATUS_TONE[ev.status]}>{EVENT_STATUS_LABEL[ev.status]}</Badge>
-              <HealthBadge health={ev.health} />
-            </div>
-          ) : undefined
-        }
-      />
+      {loading || !ev ? <Skeleton className="h-56 w-full rounded-card" /> : <EventSetupBox ev={ev} />}
 
-      {/* Analysis summary (ongoing/past) */}
-      {ev?.analysis && (
-        <Card className="border-we-red-soft">
-          <CardBody>
-            <div className="flex items-start gap-3">
-              <div className="we-line mt-1.5" />
-              <div>
-                <p className="text-sm font-medium text-we-ink">{ev.analysis.summary}</p>
-                <ul className="mt-2 space-y-1">
-                  {ev.analysis.highlights.map((h, i) => (
-                    <li key={i} className="text-xs text-we-slate">
-                      • {h}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-
-      {/* 2.1 Local KPIs */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-we-slate">Local KPIs</h2>
-        <KpiGrid kpis={kpis} loading={kpiLoading} />
-      </section>
-
-      {/* 2.2 Next Best Steps + (prediction for planned) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <NextBestSteps eventId={eventId} />
+      <Card className="overflow-hidden">
+        <div className="border-b border-we-line px-5 py-4">
+          <h2 className="text-xl font-bold text-we-ink">Event KPIs</h2>
         </div>
-        {isPlannedLike ? <PredictionCard eventId={eventId} /> : <EventMeta eventId={eventId} />}
-      </div>
+        <CardBody className="p-4 md:p-5">
+          <KpiGrid kpis={kpis} loading={kpiLoading} />
+          <NextBestSteps eventId={eventId} />
+        </CardBody>
+      </Card>
 
-      {/* 2.3 Materials + 2.4 Description */}
+      {isPlannedLike && <PredictionCard eventId={eventId} />}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <MaterialManager eventId={eventId} />
         {ev && <EditableDescription eventId={eventId} initial={ev.description} />}
       </div>
 
-      {/* Attendees + interactions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <AttendeesCard eventId={eventId} />
         <InteractionsCard eventId={eventId} />
       </div>
 
-      {/* Follow-ups + host report */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <FollowUpsCard eventId={eventId} />
         <HostReportCard eventId={eventId} />
@@ -122,29 +83,62 @@ export default function EventDetailPage({
   );
 }
 
-// ── Sub-cards ────────────────────────────────────────────────────────────────
+function EventSetupBox({ ev }: { ev: EventDetail }) {
+  const place = ev.city ?? ev.location ?? "Location TBD";
+  const summary = ev.goal || ev.description;
 
-function EventMeta({ eventId }: { eventId: string }) {
-  const { data: ev } = useAsync(() => getEvent(eventId), [eventId]);
   return (
-    <Card>
-      <CardHeader title="Event Setup" subtitle="Drivers for comparison & prediction." />
-      <CardBody className="space-y-2 text-sm">
-        <Row label="Goal" value={ev?.goal} />
-        <Row label="Target group" value={ev?.target_group} />
-        <Row label="Cost" value={ev?.cost != null ? `€${ev.cost.toLocaleString()}` : undefined} />
-        <Row label="Human capital" value={ev?.human_capital} />
-        <Row label="Owner" value={ev?.owner?.display_name} />
+    <Card className="overflow-hidden">
+      <CardBody className="p-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="p-6 md:p-7">
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <Badge tone={EVENT_STATUS_TONE[ev.status]}>{EVENT_STATUS_LABEL[ev.status]}</Badge>
+              <HealthBadge health={ev.health} />
+              <span className="rounded-tag border border-we-line bg-we-canvas px-2.5 py-1 text-[11px] font-semibold uppercase tracking-eyebrow text-we-muted">
+                {EVENT_TYPE_LABEL[ev.type]}
+              </span>
+            </div>
+
+            <h1 className="max-w-4xl text-3xl font-bold leading-tight text-we-ink md:text-4xl">{ev.title}</h1>
+            <p className="mt-4 max-w-3xl text-[15px] leading-relaxed text-we-slate">{summary}</p>
+
+            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-we-line bg-we-line md:grid-cols-4">
+              <Fact label="Date" value={fmtDate(ev.start_at)} />
+              <Fact label="Place" value={place} />
+              <Fact label="Target" value={ev.target_group} />
+              <Fact label="Owner" value={ev.owner?.display_name} />
+            </div>
+          </div>
+
+          <div className="border-t border-we-line bg-we-canvas p-6 lg:border-l lg:border-t-0">
+            <div className="eyebrow mb-4">Setup</div>
+            <div className="space-y-4">
+              <SetupFact label="University" value={ev.partner_university} />
+              <SetupFact label="Cost" value={ev.cost != null ? `€${ev.cost.toLocaleString("de-DE")}` : null} />
+              <SetupFact label="Human capital" value={ev.human_capital} />
+            </div>
+          </div>
+        </div>
       </CardBody>
     </Card>
   );
 }
 
-function Row({ label, value }: { label: string; value?: string | null }) {
+function Fact({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-we-line pb-2 last:border-0">
-      <span className="text-we-muted">{label}</span>
-      <span className="text-right text-we-ink">{value ?? "—"}</span>
+    <div className="bg-white px-4 py-3">
+      <div className="text-[10px] font-bold uppercase tracking-eyebrow text-we-muted">{label}</div>
+      <div className="mt-1 truncate text-[13px] font-semibold text-we-ink">{value ?? "-"}</div>
+    </div>
+  );
+}
+
+function SetupFact({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div>
+      <div className="text-[10px] font-bold uppercase tracking-eyebrow text-we-muted">{label}</div>
+      <div className="mt-1 text-sm font-semibold leading-snug text-we-ink">{value ?? "-"}</div>
     </div>
   );
 }
@@ -153,7 +147,7 @@ function AttendeesCard({ eventId }: { eventId: string }) {
   const { data, loading } = useAsync(() => getEventAttendees(eventId), [eventId]);
   return (
     <Card>
-      <CardHeader title="Attendees" subtitle="Registered → appeared → full session." />
+      <CardHeader title="Attendees" subtitle="Registered -> appeared -> full session." />
       <CardBody className="space-y-2">
         {loading && <Skeleton className="h-32 w-full" />}
         {!loading && data && data.length === 0 && <EmptyState title="No attendees recorded" />}
@@ -232,7 +226,7 @@ function HostReportCard({ eventId }: { eventId: string }) {
   const { data, loading } = useAsync(() => getHostReport(eventId), [eventId]);
   return (
     <Card>
-      <CardHeader title="Host Experience Report" subtitle="Qualitative context from the Würth host." />
+      <CardHeader title="Host Experience Report" subtitle="Qualitative context from the Wuerth host." />
       <CardBody>
         {loading && <Skeleton className="h-24 w-full" />}
         {!loading && !data && (

@@ -9,26 +9,26 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/create", label: "Create" },
   { href: "/communication", label: "Communication" },
-  { href: "/students", label: "Student Explorer" },
+  { href: "/students", label: "Relationships" },
 ];
 
 export function TopNav() {
   const pathname = usePathname();
 
   return (
-    <header className="relative z-40 flex h-16 items-center justify-between gap-6 border-b border-we-line bg-we-canvas/80 px-6 backdrop-blur-md md:px-10">
+    <header className="relative z-40 flex h-[84px] items-stretch justify-between gap-6 border-b border-we-line bg-we-canvas/80 px-6 backdrop-blur-md md:px-10">
       {/* Left: wordmark + nav */}
-      <div className="flex items-center gap-9">
-        <Link href="/dashboard" className="flex items-baseline gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-[5px] bg-we-red text-[12px] font-bold text-white">
+      <div className="flex items-stretch gap-12">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-we-red text-sm font-bold text-white">
             WE
           </span>
-          <span className="font-display text-lg font-semibold tracking-tight text-we-ink">
+          <span className="font-display text-xl font-semibold tracking-tight text-we-ink">
             WEave
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="hidden items-stretch gap-10 md:flex">
           {NAV.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
@@ -36,13 +36,13 @@ export function TopNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative py-1 text-[13.5px] font-medium transition-colors duration-200 ${
+                className={`relative flex items-center text-[15.5px] font-medium transition-colors duration-200 ${
                   active ? "text-we-ink" : "text-we-muted hover:text-we-ink"
                 }`}
               >
                 {item.label}
                 {active && (
-                  <span className="absolute -bottom-[21px] left-0 h-[2px] w-full bg-we-red" />
+                  <span className="absolute bottom-0 left-0 h-[2.5px] w-full bg-we-red" />
                 )}
               </Link>
             );
@@ -51,21 +51,21 @@ export function TopNav() {
       </div>
 
       {/* Right: env marker + identity */}
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-6">
         {USE_MOCKS && (
-          <span className="hidden items-center gap-2 text-[11px] font-medium uppercase tracking-eyebrow text-we-muted sm:inline-flex">
+          <span className="hidden items-center gap-2 text-[12px] font-medium uppercase tracking-eyebrow text-we-muted sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-status-warn" />
             <span className="font-mono">Mock</span>
           </span>
         )}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <span className="hidden text-right leading-tight md:block">
-            <span className="block text-[13px] font-medium text-we-ink">Simon Häckner</span>
-            <span className="block font-mono text-[10px] uppercase tracking-wider text-we-muted">
+            <span className="block text-[14.5px] font-semibold text-we-ink">Simon Häckner</span>
+            <span className="block font-mono text-[11px] uppercase tracking-wider text-we-muted">
               Würth Elektronik
             </span>
           </span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-we-ink font-mono text-[11px] font-semibold text-we-canvas">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-we-ink font-mono text-[13px] font-semibold text-we-canvas">
             SH
           </span>
         </div>
