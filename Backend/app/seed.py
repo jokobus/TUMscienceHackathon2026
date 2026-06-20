@@ -1,7 +1,7 @@
 """Demo seed (MASTER §9). Mirrors the Employee App's bundled seed so the same
 IDs/names line up across clients. Idempotent: skips if users already exist.
 
-Logins: employees password `wuerth`, students password `weave`.
+Logins: every demo account (employees + students) uses the password `weave`.
 """
 from __future__ import annotations
 
@@ -202,7 +202,8 @@ def seed(db: Session) -> None:
     if db.scalar(select(User).limit(1)):
         return  # already seeded
 
-    emp_pw = hash_password("wuerth")
+    # One simple shared password for the whole demo team + jurors.
+    emp_pw = hash_password("weave")
     stu_pw = hash_password("weave")
 
     # Insert parent rows (users) before any FK children. Postgres enforces FKs;

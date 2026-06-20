@@ -62,18 +62,31 @@ services:
     expose:
       - "3000"
 
+  # Student web app = the React Native app exported to web (browser backup for jurors).
+  student:
+    build:
+      context: ../Student_App_RN
+      dockerfile: Dockerfile.web
+      args:
+        EXPO_PUBLIC_API_BASE_URL: https://${DOMAIN_API}
+    restart: unless-stopped
+    expose:
+      - "3000"
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
       - api
       - dashboard
+      - student
     ports:
       - "80:80"
       - "443:443"
     environment:
       DOMAIN_APP: ${DOMAIN_APP}
       DOMAIN_API: ${DOMAIN_API}
+      DOMAIN_STUDENT: ${DOMAIN_STUDENT}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

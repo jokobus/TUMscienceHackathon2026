@@ -8,6 +8,7 @@
 import type {
   Attendee,
   ChatMessage,
+  CreateEventInput,
   EventDetail,
   EventFollowUp,
   EventInteraction,
@@ -573,6 +574,73 @@ export const MOCK_NEXT_BEST_STEPS: Record<string, NextBestStep[]> = {
     { id: "ns-3", action: "Invite top 5 engaged students to the hackathon", rationale: "Warm pipeline for the at-risk RedExpert Hackathon.", priority: "medium", creates_follow_up: true },
   ],
 };
+
+// ── Mutable store: events created in the UI (mock mode) ───────────────────────
+// MOCK_EVENTS / MOCK_EVENT_DETAIL are mutated here so a freshly created event
+// shows up in the list (under "Planned") and on its own detail page during the
+// session. State resets on a full page reload — fine for the demo.
+let createdCount = 0;
+
+export function addMockEvent(input: CreateEventInput): {
+  id: string;
+  summary: EventSummary;
+  detail: EventDetail;
+} {
+  createdCount += 1;
+  const id = `ev-new-${createdCount}`;
+  const startIso = input.start_at ? new Date(input.start_at).toISOString() : iso(14 * DAY);
+  const title = input.title.trim() || "Untitled event";
+
+  const summary: EventSummary = {
+    id,
+    title,
+    status: "planned",
+    type: input.type,
+    health: "on_track",
+    start_at: startIso,
+    city: input.city || null,
+    location: input.location || null,
+    partner_university: input.partner_university || null,
+    relationship_roi: 0,
+    image_url: null,
+    attendee_count: 0,
+    kpis: kpis({
+      registered: 0,
+      checked_in: 0,
+      check_in_rate: 0,
+      full_session_rate: 0,
+      qualified_leads: 0,
+      engagement_index: 0,
+      follow_ups_open: 0,
+      recommendation_score: 0,
+      nps_score: null,
+      returning_users: 0,
+      cost_per_lead: null,
+    }),
+  };
+
+  const detail: EventDetail = {
+    id,
+    title,
+    type: input.type,
+    city: summary.city,
+    location: summary.location,
+    start_at: startIso,
+    health: "on_track",
+    status: "planned",
+    description: input.goal || "Newly planned event.",
+    goal: input.goal || null,
+    target_group: input.target_group || null,
+    cost: input.cost ?? null,
+    human_capital: input.human_capital || null,
+    owner: null,
+    analysis: null,
+  };
+
+  MOCK_EVENTS.unshift(summary); // appears first in the list
+  MOCK_EVENT_DETAIL[id] = detail;
+  return { id, summary, detail };
+}
 
 export const MOCK_MATERIALS: Record<string, Material[]> = {
   "ev-1": [

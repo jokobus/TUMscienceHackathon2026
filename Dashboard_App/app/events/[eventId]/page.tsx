@@ -75,7 +75,7 @@ export default function EventDetailPage({
               <div>
                 <p className="text-sm font-medium text-we-ink">{ev.analysis.summary}</p>
                 <ul className="mt-2 space-y-1">
-                  {ev.analysis.highlights.map((h, i) => (
+                  {(ev.analysis.highlights ?? []).map((h, i) => (
                     <li key={i} className="text-xs text-we-slate">
                       • {h}
                     </li>

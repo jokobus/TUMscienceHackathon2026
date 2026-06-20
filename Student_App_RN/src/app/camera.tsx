@@ -61,7 +61,11 @@ export default function CameraScreen() {
     if (handled.current || busy) return;
     const parsed = parseScan(data);
     if (!parsed) {
-      toast("Unrecognised QR code.", "error");
+      // Unknown QR (e.g. a real Würth marketing code): don't dead-end the demo —
+      // show the event feed so the user can browse and check in manually.
+      handled.current = true;
+      toast("QR not recognised — showing all Würth events.", "info");
+      router.replace("/(tabs)/feed" as any);
       return;
     }
     handled.current = true;

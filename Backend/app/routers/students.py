@@ -72,7 +72,11 @@ def list_students(
     if sort == "engagement" or sort == "priority":
         rows.sort(key=lambda r: r["engagement_score"], reverse=True)
     elif sort == "recency":
-        rows.sort(key=lambda r: r["last_interaction_at"] or "", reverse=True)
+        # None-safe, timezone-safe: sort by ISO string (datetime→iso, None→"")
+        rows.sort(
+            key=lambda r: r["last_interaction_at"].isoformat() if r["last_interaction_at"] else "",
+            reverse=True,
+        )
     return rows
 
 

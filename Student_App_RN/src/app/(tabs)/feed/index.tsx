@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Search } from "lucide-react-native";
 import type { WeaveEvent } from "@/lib/types";
 import * as api from "@/lib/api";
+import { getRegisteredIds } from "@/lib/registered";
 import { EventCard } from "@/components/student/EventCard";
 import { FeedFilters } from "@/components/student/FeedFilters";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -19,6 +20,7 @@ export default function FeedScreen() {
   // AI search results (GET /api/events/search); null = no active search.
   const [searchResults, setSearchResults] = useState<WeaveEvent[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +34,8 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       if (events === null) load();
+      // Refresh "My Events" each time the Feed regains focus (e.g. after a check-in).
+      getRegisteredIds().then(setRegisteredIds);
     }, [events, load])
   );
 
@@ -77,6 +81,9 @@ export default function FeedScreen() {
     if (activeFilter) {
       const now = Date.now();
       switch (activeFilter) {
+        case "My Events":
+          list = list.filter((e) => registeredIds.includes(e.id));
+          break;
         case "Upcoming":
           list = list.filter((e) => new Date(e.startAt).getTime() >= now);
           break;
@@ -108,7 +115,7 @@ export default function FeedScreen() {
       }
     }
     return list.sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
-  }, [events, searchResults, isSearch, activeFilter]);
+  }, [events, searchResults, isSearch, activeFilter, registeredIds]);
 
   const header = (
     <View>

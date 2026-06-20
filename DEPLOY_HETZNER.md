@@ -4,11 +4,21 @@ A single Hetzner Cloud VM runs the whole stack with one `docker compose` command
 Caddy handles HTTPS automatically, so there are no certificates to manage.
 
 ```
-                        ┌──────────────── Hetzner VM ────────────────┐
-  app.<domain>  ─443──▶ │  Caddy ──▶ dashboard (Next.js, :3000)        │
-  api.<domain>  ─443──▶ │    │   ──▶ api (FastAPI, :8000) ──▶ Postgres │
-                        └─────────────────────────────────────────────┘
+                        ┌──────────────── Hetzner VM ──────────────────┐
+  dash.<domain> ─443──▶ │  Caddy ──▶ dashboard (Würth, Next.js :3000)   │
+  app.<domain>  ─443──▶ │    │   ──▶ student  (RN web export :3000)     │
+  api.<domain>  ─443──▶ │    │   ──▶ api (FastAPI :8000) ──▶ Postgres   │
+                        └───────────────────────────────────────────────┘
+                              ▲
+   Expo mobile apps (Student + Würth/Employee, React Native) ──┘  point at https://api.<domain>
 ```
+
+Both **web** apps are served so anyone — including the jury — can open them in a
+browser, no install needed. The Würth dashboard is a Next.js app; the **student web
+app is the React Native app exported to web** (`expo export -p web`) — the same client
+as the mobile build, so there's a single student codebase. Natively, the Student &
+Würth apps run in Expo Go / via EAS. Everything talks to the same `https://api.<domain>`
+backend — one DB, no data contradictions.
 
 ## 1. Provision the server
 
@@ -18,12 +28,13 @@ Caddy handles HTTPS automatically, so there are no certificates to manage.
 
 ## 2. DNS
 
-Create two **A records** pointing at the server IP:
+Create three **A records** pointing at the server IP:
 
-| Record                | Type | Value (server IP) |
-|-----------------------|------|-------------------|
-| `app.your-domain.com` | A    | `203.0.113.10`    |
-| `api.your-domain.com` | A    | `203.0.113.10`    |
+| Record                 | Type | Value (server IP) | Serves          |
+|------------------------|------|-------------------|-----------------|
+| `dash.your-domain.com` | A    | `203.0.113.10`    | Würth dashboard |
+| `app.your-domain.com`  | A    | `203.0.113.10`    | Student web app |
+| `api.your-domain.com`  | A    | `203.0.113.10`    | Backend + WS    |
 
 HTTPS will not issue until DNS resolves, so do this first.
 
@@ -57,9 +68,25 @@ docker compose -f deploy/docker-compose.yml up -d --build
 First boot: Caddy fetches Let's Encrypt certs (a few seconds once DNS is live),
 the backend seeds demo data, Postgres initialises its volume.
 
-- Dashboard → `https://app.your-domain.com`
-- API docs  → `https://api.your-domain.com/docs`
-- Health    → `https://api.your-domain.com/health`
+- Würth dashboard → `https://dash.your-domain.com`
+- Student web app → `https://app.your-domain.com`
+- API docs        → `https://api.your-domain.com/docs`
+- Health          → `https://api.your-domain.com/health`
+
+## Mobile apps (Expo / React Native)
+
+The native Student & Würth apps point at the same backend. In each app's `.env`:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://api.your-domain.com
+# WS is derived automatically (https→wss). Override only if needed:
+# EXPO_PUBLIC_WS_URL=wss://api.your-domain.com/ws/chat
+```
+
+- Quick demo: `npx expo start` and scan the QR with Expo Go.
+- Distributable build: `eas build -p ios` / `-p android` (Expo EAS).
+- The Student app's feed falls back to bundled real Würth events when no backend is set,
+  so it always has content even offline.
 
 ## 6. Open the firewall
 

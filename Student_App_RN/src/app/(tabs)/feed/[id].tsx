@@ -32,6 +32,7 @@ import type {
   WeaveEvent,
 } from "@/lib/types";
 import * as api from "@/lib/api";
+import { addRegistered, removeRegistered } from "@/lib/registered";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -135,6 +136,7 @@ export default function EventDetailScreen() {
     try {
       await api.checkInEvent(id!);
       setAttended(true);
+      addRegistered(id!);
       toast("Checked in! You now have access to files and memory.");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Check-in failed.", "error");
@@ -155,6 +157,7 @@ export default function EventDetailScreen() {
     }
     if (applied) {
       setApplied(false);
+      removeRegistered(event.id);
       toast("Registration cancelled.");
       return;
     }
@@ -180,6 +183,7 @@ export default function EventDetailScreen() {
       try {
         await api.submitApplication(event.id, user.email, []);
         setApplied(true);
+        addRegistered(event.id);
         toast("Registered successfully!");
       } catch (e) {
         toast(e instanceof Error ? e.message : "Could not register.", "error");
@@ -197,6 +201,7 @@ export default function EventDetailScreen() {
       );
       setApplied(true);
       setAppOpen(false);
+      addRegistered(event.id);
       toast("Application Submitted!");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not submit.", "error");

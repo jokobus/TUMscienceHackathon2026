@@ -42,12 +42,18 @@ network boundary, so the wire format here is **snake_case** per the contract.
 
 ## Demo logins
 
-| Role | Email | Password |
-|------|-------|----------|
-| Employee | `simon.haeckner@we-online.de` | `wuerth` |
-| Employee | `jana.donges@we-online.com` | `wuerth` |
-| Employee | `christian.kapusta@we-online.com` | `wuerth` |
-| Student | `thiviyan.saravanamuthu@tum.de` | `weave` |
+Every account uses the password **`weave`**.
+
+| Role | Name | Email | Password |
+|------|------|-------|----------|
+| Employee (juror) | Simon | `simon.haeckner@we-online.de` | `weave` |
+| Employee (juror) | Jana | `jana.donges@we-online.com` | `weave` |
+| Employee (juror) | Christian | `christian.kapusta@we-online.com` | `weave` |
+| Student (team) | Nakulan | `nakulan.sundarraju@tum.de` | `weave` |
+| Student (team) | Michael | `michael.brandt@tum.de` | `weave` |
+| Student (team) | Lenni | `lenni.frank@tu-berlin.de` | `weave` |
+| Student (team) | Thiviyan | `thiviyan.saravanamuthu@tum.de` | `weave` |
+| Student (team) | Jakob | `jakob.weber@lmu.de` | `weave` |
 
 ## Layout
 

@@ -2,14 +2,14 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
-import { askOpportunityAssistant, createEvent, getOpportunities } from "@/lib/api";
+import { askAssistant, createEvent, getOpportunities } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton, EmptyState } from "@/components/ui/States";
 import { EVENT_TYPE_LABEL } from "@/lib/format";
-import type { AssistantReply, CreateEventInput, EventType } from "@/lib/types";
+import type { AssistantAction, AssistantTurn, CreateEventInput, EventType } from "@/lib/types";
 
 const TABS = ["manual", "explorer"] as const;
 type Tab = (typeof TABS)[number];
@@ -387,9 +387,10 @@ function isEventType(value: string | null): value is EventType {
 // ── 3.3 Opportunity Explorer + LLM assistant ─────────────────────────────────
 
 function OpportunityExplorer() {
+  const router = useRouter();
   const { data, loading } = useAsync(() => getOpportunities(), []);
   const [prompt, setPrompt] = useState("");
-  const [reply, setReply] = useState<AssistantReply | null>(null);
+  const [reply, setReply] = useState<AssistantTurn | null>(null);
   const [thinking, setThinking] = useState(false);
 
   const examples = [
@@ -402,16 +403,20 @@ function OpportunityExplorer() {
     setPrompt(p);
     setThinking(true);
     setReply(null);
-    const r = await askOpportunityAssistant(p);
+    const r = await askAssistant(p);
     setReply(r);
     setThinking(false);
+  }
+
+  function runAction(a: AssistantAction) {
+    router.push(a.href);
   }
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Assistant */}
       <Card>
-        <CardHeader title="Planning Assistant" subtitle="Describe what you want — get database-grounded recommendations with reasoning." />
+        <CardHeader title="Planning Assistant" subtitle="Powered by the same Ask WEave bot — grounded in your event & student data." />
         <CardBody className="space-y-3">
           <form
             onSubmit={(e) => {
@@ -445,9 +450,21 @@ function OpportunityExplorer() {
           {thinking && <Skeleton className="h-24 w-full" />}
           {reply && (
             <div className="rounded-md border border-we-red-soft bg-we-red-soft p-3.5">
-              <div className="text-xs font-medium text-we-red">Recommendation</div>
-              <div className="mt-1 text-sm font-semibold text-we-ink">{reply.recommendation}</div>
-              <p className="mt-1.5 text-xs leading-relaxed text-we-slate">{reply.reasoning}</p>
+              <div className="text-xs font-medium text-we-red">Ask WEave</div>
+              <p className="mt-1 text-sm leading-relaxed text-we-ink">{reply.answer}</p>
+              {reply.actions.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {reply.actions.map((a, j) => (
+                    <button
+                      key={j}
+                      onClick={() => runAction(a)}
+                      className="inline-flex items-center gap-1 rounded-md bg-we-red px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-we-red-dark"
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </CardBody>

@@ -10,7 +10,7 @@ import { wuerth } from "@/theme";
 export default function LoginScreen() {
   const { employee, loading, login } = useAuth();
   const [email, setEmail] = useState("simon.haeckner@we-online.de");
-  const [password, setPassword] = useState("wuerth");
+  const [password, setPassword] = useState("weave");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -100,7 +100,7 @@ export default function LoginScreen() {
             <Text className="mt-1 text-xs leading-relaxed text-wuerth-slate">
               simon.haeckner@we-online.de · jana.donges@we-online.com ·
               christian.kapusta@we-online.com{"\n"}Password for all:{" "}
-              <Text className="font-semibold">wuerth</Text>
+              <Text className="font-semibold">weave</Text>
             </Text>
           </View>
         </View>

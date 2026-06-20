@@ -2,6 +2,7 @@ import { Pressable, ScrollView, Text } from "react-native";
 import { cn } from "@/lib/utils";
 
 const FILTER_CHIPS = [
+  "My Events",
   "Upcoming",
   "Past",
   "Hackathons",

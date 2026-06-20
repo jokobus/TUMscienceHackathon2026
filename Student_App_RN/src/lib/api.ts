@@ -21,9 +21,11 @@ import type {
   Suggestion,
   WeaveEvent,
 } from "@/lib/types";
-import { clearSession, getToken, request, setSession } from "@/lib/http";
+import { clearSession, getToken, request, setSession, USE_BACKEND } from "@/lib/http";
+import { MOCK_EVENTS, getMockEvent } from "@/lib/mock/events";
 
-export { API_BASE_URL, USE_BACKEND } from "@/lib/http";
+export { API_BASE_URL } from "@/lib/http";
+export { USE_BACKEND };
 
 // Cached synchronously for callers that need "who am I" without awaiting.
 let cachedUserId: string | null = null;
@@ -102,8 +104,15 @@ export async function me(): Promise<AuthUser | null> {
 type ListResponse<T> = { items: T[]; nextCursor: string | null };
 
 export async function getEvents(): Promise<WeaveEvent[]> {
-  const res = await request<ListResponse<WeaveEvent>>("GET", "/api/events?limit=200");
-  return res.items;
+  // Feed data source: real scraped Würth events when there's no backend,
+  // and as a fallback if the backend is reachable but returns nothing / errors.
+  if (!USE_BACKEND) return MOCK_EVENTS;
+  try {
+    const res = await request<ListResponse<WeaveEvent>>("GET", "/api/events?limit=200");
+    return res.items.length ? res.items : MOCK_EVENTS;
+  } catch {
+    return MOCK_EVENTS;
+  }
 }
 
 export async function searchEvents(query: string): Promise<WeaveEvent[]> {
@@ -119,7 +128,18 @@ export async function getCurrentEvent(): Promise<WeaveEvent | null> {
 }
 
 export async function getEvent(eventId: string): Promise<WeaveEvent> {
-  return request<WeaveEvent>("GET", `/api/events/${eventId}`);
+  if (!USE_BACKEND) {
+    const ev = getMockEvent(eventId);
+    if (ev) return ev;
+    throw new Error("Event not found");
+  }
+  try {
+    return await request<WeaveEvent>("GET", `/api/events/${eventId}`);
+  } catch (e) {
+    const ev = getMockEvent(eventId);
+    if (ev) return ev;
+    throw e;
+  }
 }
 
 export async function getEventFiles(eventId: string): Promise<FilesResponse> {
