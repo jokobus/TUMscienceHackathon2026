@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getEventMaterials, uploadMaterial } from "@/lib/api";
+import { getEventMaterials, updateEventDescription, uploadMaterial } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,14 +21,24 @@ const TYPES: MaterialType[] = [
 ];
 
 /** Material upload (AGENT §2.3). Real upload is multipart; mock echoes a row. */
-export function MaterialManager({ eventId }: { eventId: string }) {
+export function MaterialManager({
+  eventId,
+  initialDescription,
+}: {
+  eventId: string;
+  initialDescription?: string;
+}) {
   const { data, loading } = useAsync(() => getEventMaterials(eventId), [eventId]);
   const [items, setItems] = useState<Material[] | null>(null);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<MaterialType>("slides");
   const [busy, setBusy] = useState(false);
+  const [description, setDescription] = useState(initialDescription ?? "");
+  const [savedDescription, setSavedDescription] = useState(initialDescription ?? "");
+  const [descriptionBusy, setDescriptionBusy] = useState(false);
 
   const list = items ?? data ?? [];
+  const descriptionDirty = description.trim() !== savedDescription.trim();
 
   async function handleUpload() {
     if (!title.trim()) return;
@@ -39,13 +49,42 @@ export function MaterialManager({ eventId }: { eventId: string }) {
     setBusy(false);
   }
 
+  async function handleDescriptionSave() {
+    setDescriptionBusy(true);
+    await updateEventDescription(eventId, description);
+    setSavedDescription(description);
+    setDescriptionBusy(false);
+  }
+
   return (
     <Card>
-      <CardHeader
-        title="Materials"
-        subtitle="Slides, docs, product info — connectable to the student-facing event page."
-      />
-      <CardBody className="space-y-3">
+      <CardHeader title="Materials" />
+      <CardBody className="space-y-4">
+        {initialDescription !== undefined && (
+          <div className="rounded-card border border-we-line bg-white p-3 shadow-card">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-eyebrow text-we-muted">
+                <span className="we-line h-[2px] w-6" />
+                <span>Student-facing description</span>
+              </div>
+              <Button
+                variant="secondary"
+                className="px-3 py-1.5 text-[12px]"
+                onClick={handleDescriptionSave}
+                disabled={descriptionBusy || !descriptionDirty}
+              >
+                {descriptionBusy ? "Saving..." : descriptionDirty ? "Save" : "Saved"}
+              </Button>
+            </div>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full resize-none rounded-md border border-we-line bg-we-canvas px-3 py-2 text-sm leading-relaxed text-we-ink outline-none transition-colors focus:border-we-red focus:bg-white"
+            />
+          </div>
+        )}
+
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             value={title}
@@ -65,24 +104,24 @@ export function MaterialManager({ eventId }: { eventId: string }) {
             ))}
           </select>
           <Button onClick={handleUpload} disabled={busy || !title.trim()}>
-            {busy ? "Uploading…" : "Upload"}
+            {busy ? "Uploading..." : "Upload"}
           </Button>
         </div>
 
         {loading && <Skeleton className="h-24 w-full" />}
         {!loading && list.length === 0 && (
-          <EmptyState title="No materials yet" hint="Upload slides or docs for this event." />
+          <EmptyState title="No materials yet" />
         )}
         {!loading &&
           list.map((m) => (
             <div
               key={m.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-we-line px-3 py-2.5"
+              className="flex items-center justify-between gap-3 rounded-md border border-we-line bg-white px-3 py-2.5 transition-colors hover:border-we-line-strong"
             >
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-we-ink">{m.title}</div>
                 <div className="text-[11px] text-we-muted">
-                  {m.type.replace(/_/g, " ")} · {fmtDate(m.upload_date)} · {m.uploaded_by.display_name}
+                  {m.type.replace(/_/g, " ")} - {fmtDate(m.upload_date)} - {m.uploaded_by.display_name}
                 </div>
               </div>
               <div className="shrink-0 text-right text-[11px] text-we-slate">

@@ -5,22 +5,6 @@ import { useAsync } from "@/lib/useAsync";
 import { EmptyState, Skeleton } from "@/components/ui/States";
 import type { NextBestStep } from "@/lib/types";
 
-const DOT: Record<NextBestStep["priority"], string> = {
-  high: "bg-status-risk",
-  medium: "bg-status-warn",
-  low: "bg-status-neutral",
-};
-const TXT: Record<NextBestStep["priority"], string> = {
-  high: "text-status-risk",
-  medium: "text-status-warn",
-  low: "text-status-neutral",
-};
-
-/**
- * Next Best Steps — same strip arrangement as the dashboard's "Best next
- * actions": a we-line label, then a hairline grid of compact action cards,
- * sitting directly under the local KPIs. (AGENT §2.2)
- */
 export function NextBestSteps({ eventId }: { eventId: string }) {
   const { data, loading } = useAsync(() => getEventNextBestSteps(eventId), [eventId]);
 
@@ -35,14 +19,12 @@ export function NextBestSteps({ eventId }: { eventId: string }) {
 
       {loading && <Skeleton className="h-28 w-full rounded-card" />}
 
-      {!loading && (!data || data.length === 0) && (
-        <EmptyState title="No actions suggested" hint="Analysis will surface steps once data is in." />
-      )}
+      {!loading && (!data || data.length === 0) && <EmptyState title="No actions suggested" />}
 
       {!loading && data && data.length > 0 && (
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-we-line bg-we-line shadow-card md:grid-cols-2 lg:grid-cols-3">
-          {data.map((step) => (
-            <StepCard key={step.id} step={step} />
+          {data.slice(0, 3).map((step, index) => (
+            <StepCard key={step.id} step={step} index={index + 1} />
           ))}
         </div>
       )}
@@ -50,25 +32,24 @@ export function NextBestSteps({ eventId }: { eventId: string }) {
   );
 }
 
-function StepCard({ step }: { step: NextBestStep }) {
+function StepCard({ step, index }: { step: NextBestStep; index: number }) {
   return (
-    <div className="flex flex-col bg-white px-4 py-3.5">
+    <div className="flex min-h-[96px] flex-col bg-white px-4 py-3.5 transition-colors hover:bg-we-canvas">
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-eyebrow">
-          <span className={`h-1.5 w-1.5 rounded-full ${DOT[step.priority]}`} />
-          <span className={TXT[step.priority]}>{step.priority}</span>
+        <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-eyebrow text-we-muted">
+          <span className="text-we-red">{String(index).padStart(2, "0")}</span>
+          <span>{step.priority}</span>
         </span>
         {step.creates_follow_up && (
           <button
             type="button"
-            className="shrink-0 rounded-tag border border-we-line px-2 py-0.5 text-[11px] font-semibold text-we-slate transition-colors hover:border-we-ink hover:text-we-ink"
+            className="shrink-0 rounded-tag border border-we-line bg-white px-2 py-0.5 text-[11px] font-semibold text-we-slate transition-colors hover:border-we-red hover:text-we-ink"
           >
             + Follow-up
           </button>
         )}
       </div>
       <h3 className="text-[14px] font-bold leading-snug text-we-ink">{step.action}</h3>
-      <p className="mt-1 text-[12px] leading-relaxed text-we-muted">{step.rationale}</p>
     </div>
   );
 }
