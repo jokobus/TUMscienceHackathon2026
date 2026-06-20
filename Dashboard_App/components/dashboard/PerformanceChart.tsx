@@ -32,11 +32,11 @@ const DIMENSIONS: PerformanceDimension[] = [
 ];
 
 const TONE_FILL: Record<string, string> = {
-  good: "#1E9E5A",
-  warn: "#C77700",
-  risk: "#CC0000",
-  info: "#1F6FEB",
-  neutral: "#9AA1AD",
+  good: "#2F7D57",
+  warn: "#9A6B16",
+  risk: "#CC1122",
+  info: "#3F5A73",
+  neutral: "#C7C2B6",
 };
 
 /** Graphical event-performance control center (AGENT §1.2). */
@@ -47,13 +47,14 @@ export function PerformanceChart() {
   return (
     <Card>
       <CardHeader
+        eyebrow="Comparison"
         title="Event Performance"
         subtitle="Compare events on relationship & brand performance — not only commercial results."
         action={
           <select
             value={dimension}
             onChange={(e) => setDimension(e.target.value as PerformanceDimension)}
-            className="rounded-md border border-we-line bg-we-canvas px-2.5 py-1.5 text-xs font-medium text-we-slate outline-none focus:border-we-red"
+            className="rounded-tag border border-we-line-strong bg-we-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-we-slate outline-none transition-colors hover:border-we-ink focus:border-we-ink"
           >
             {DIMENSIONS.map((d) => (
               <option key={d} value={d}>
@@ -71,28 +72,30 @@ export function PerformanceChart() {
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.points} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" vertical={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#E7E3D9" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: "#6B7280" }}
+                    tick={{ fontSize: 11, fill: "#8B887E", fontFamily: "var(--font-mono)" }}
                     tickLine={false}
-                    axisLine={{ stroke: "#E4E7EC" }}
+                    axisLine={{ stroke: "#E7E3D9" }}
                     interval={0}
                     angle={-12}
                     textAnchor="end"
                     height={48}
                   />
-                  <YAxis tick={{ fontSize: 11, fill: "#6B7280" }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "#8B887E", fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={false} />
                   <Tooltip
-                    cursor={{ fill: "rgba(204,0,0,0.04)" }}
+                    cursor={{ fill: "rgba(27,26,24,0.04)" }}
                     contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #E4E7EC",
+                      borderRadius: 6,
+                      border: "1px solid #E7E3D9",
                       fontSize: 12,
+                      fontFamily: "var(--font-mono)",
+                      boxShadow: "0 10px 30px -12px rgba(27,26,24,0.18)",
                     }}
                     formatter={(v: number) => [`${v} ${data.unit}`, DIMENSION_LABEL[data.dimension]]}
                   />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={56}>
+                  <Bar dataKey="value" radius={[3, 3, 0, 0]} maxBarSize={48}>
                     {data.points.map((p) => (
                       <Cell key={p.event_id} fill={TONE_FILL[EVENT_HEALTH_TONE[p.health]]} />
                     ))}

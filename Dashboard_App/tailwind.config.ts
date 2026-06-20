@@ -1,9 +1,10 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Würth Elektronik design language (see /wuerth-elektronik-design.md):
- * technical, structured B2B. WE-Red accent, modular grid, high clarity.
- * Colors are exposed as CSS variables in globals.css so theming stays central.
+ * Würth "Control Center" design system — art-directed, editorial, technical.
+ * Warm-neutral paper + one disciplined red accent. Flat depth (hairlines, not
+ * shadows). Serif display / sans UI / mono data. Tokens are the single source
+ * of truth — values change here and propagate across every component.
  */
 const config: Config = {
   content: [
@@ -15,40 +16,63 @@ const config: Config = {
     extend: {
       colors: {
         we: {
-          // WE brand red + supporting technical palette
-          red: "#CC0000",
-          "red-dark": "#A30000",
-          "red-soft": "#FBE9E9",
-          ink: "#1A1A1E",
-          slate: "#3F4451",
-          muted: "#6B7280",
-          line: "#E4E7EC",
+          // accent — used sparingly, as punctuation
+          red: "#CC1122",
+          "red-dark": "#9E0A18",
+          "red-soft": "#F6ECEA",
+          // warm-neutral ink ramp
+          ink: "#1B1A18",
+          slate: "#46443E",
+          muted: "#8B887E",
+          faint: "#B6B2A7",
+          line: "#E7E3D9",
+          "line-strong": "#D8D3C7",
           surface: "#FFFFFF",
-          canvas: "#F5F6F8",
+          canvas: "#F4F2EC",
         },
-        // semantic status colors for event-health / prediction badges
+        // muted, sophisticated status hues (no candy colors)
         status: {
-          good: "#1E9E5A",
-          "good-soft": "#E6F4EC",
-          warn: "#C77700",
-          "warn-soft": "#FBF1E0",
-          risk: "#CC0000",
-          "risk-soft": "#FBE9E9",
-          neutral: "#6B7280",
-          "neutral-soft": "#EEF0F3",
-          info: "#1F6FEB",
-          "info-soft": "#E7F0FE",
+          good: "#2F7D57",
+          "good-soft": "#EAF1EC",
+          warn: "#9A6B16",
+          "warn-soft": "#F4EEE2",
+          risk: "#CC1122",
+          "risk-soft": "#F6ECEA",
+          neutral: "#7C7A72",
+          "neutral-soft": "#EDEAE2",
+          info: "#3F5A73",
+          "info-soft": "#EAEEF1",
         },
       },
       fontFamily: {
+        display: ["var(--font-display)", "Georgia", "serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      fontSize: {
+        // editorial display sizes with tightened tracking
+        "display-lg": ["3.4rem", { lineHeight: "1.02", letterSpacing: "-0.02em" }],
+        "display": ["2.5rem", { lineHeight: "1.05", letterSpacing: "-0.018em" }],
+        "display-sm": ["1.9rem", { lineHeight: "1.1", letterSpacing: "-0.015em" }],
+      },
+      letterSpacing: {
+        eyebrow: "0.2em",
       },
       borderRadius: {
-        card: "10px",
+        card: "7px",
+        tag: "4px",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06)",
-        "card-hover": "0 4px 12px rgba(16,24,40,0.10)",
+        // near-flat; depth comes from borders + composition
+        card: "0 1px 1px rgba(27,26,24,0.02)",
+        lift: "0 10px 30px -12px rgba(27,26,24,0.18)",
+        float: "0 24px 60px -20px rgba(27,26,24,0.28)",
+      },
+      transitionTimingFunction: {
+        premium: "cubic-bezier(0.22, 1, 0.36, 1)",
+      },
+      maxWidth: {
+        editorial: "78rem",
       },
     },
   },

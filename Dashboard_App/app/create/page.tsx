@@ -22,6 +22,7 @@ export default function CreatePage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
+        eyebrow="Planning"
         title="Create"
         subtitle="Create a new event manually, or explore future opportunities with the planning assistant."
       />

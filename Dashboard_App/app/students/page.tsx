@@ -63,6 +63,7 @@ function StudentsInner() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
+        eyebrow="Relationships"
         title="Student Explorer"
         subtitle="Follow-up opportunities from consent-based signals — not a public ranking."
         action={

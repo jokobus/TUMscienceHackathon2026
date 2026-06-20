@@ -2,14 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Würth Elektronik design language (see /wuerth-elektronik-design.md):
-   technical, structured, high clarity. Colors centralised here as CSS vars
-   and mirrored in tailwind.config.ts. */
+/* ─────────────────────────────────────────────────────────────────────────
+   Würth Control Center — art direction
+   Warm paper, near-black warm ink, one red accent. Serif display, sans UI,
+   mono data. Flat structural depth. Tokens live in tailwind.config.ts.
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --we-red: #cc0000;
-  --we-canvas: #f5f6f8;
-  --we-ink: #1a1a1e;
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --we-red: #cc1122;
+  --we-canvas: #f4f2ec;
+  --we-ink: #1b1a18;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 html,
@@ -17,28 +21,111 @@ body {
   background: var(--we-canvas);
   color: var(--we-ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Thin, technical scrollbars to match the B2B aesthetic */
+::selection {
+  background: var(--we-red);
+  color: #fff;
+}
+
+/* Thin technical scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd0d8 transparent;
+  scrollbar-color: #cfcabd transparent;
 }
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #cbd0d8;
-  border-radius: 4px;
+  background: #d8d3c7;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #c4bfb1;
+  background-clip: content-box;
+}
+
+/* ── Editorial type helpers ─────────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: #8b887e;
+}
+.font-display {
+  font-feature-settings: "ss01";
+}
+/* Mono tabular figures everywhere numbers matter */
+.tnum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
 /* WE-Line: the brand's signature thin accent rule */
 .we-line {
-  height: 3px;
-  width: 40px;
+  height: 2px;
+  width: 34px;
   background: var(--we-red);
-  border-radius: 2px;
+}
+
+/* Hairline rule used to separate editorial sections */
+.hairline {
+  border-top: 1px solid #e7e3d9;
+}
+
+/* Underline-on-hover with offset — refined link affordance */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-underline:hover {
+  background-size: 100% 1px;
+}
+
+/* ── Motion: scroll reveal (paired with components/ui/Reveal.tsx) ────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #ece9e1 25%, #e3dfd5 37%, #ece9e1 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.5s ease infinite;
+  border-radius: 5px;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 
 @keyframes pulse-soft {
@@ -47,20 +134,6 @@ body {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
-  }
-}
-.skeleton {
-  background: linear-gradient(90deg, #eef0f3 25%, #e4e7ec 37%, #eef0f3 63%);
-  background-size: 400% 100%;
-  animation: shimmer 1.4s ease infinite;
-  border-radius: 6px;
-}
-@keyframes shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0 50%;
+    opacity: 0.35;
   }
 }

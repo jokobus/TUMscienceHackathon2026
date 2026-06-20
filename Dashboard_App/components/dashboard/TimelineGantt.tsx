@@ -8,12 +8,12 @@ import { EmptyState, Skeleton } from "@/components/ui/States";
 import type { TimelineBar, TimelineSegment } from "@/lib/types";
 
 const SEGMENT_COLOR: Record<TimelineSegment["kind"], string> = {
-  preparation: "#9AA1AD",
-  event: "#CC0000",
-  follow_up: "#1F6FEB",
-  material_deadline: "#C77700",
-  host_report_deadline: "#C77700",
-  communication: "#1E9E5A",
+  preparation: "#C7C2B6",
+  event: "#CC1122",
+  follow_up: "#3F5A73",
+  material_deadline: "#9A6B16",
+  host_report_deadline: "#9A6B16",
+  communication: "#2F7D57",
 };
 
 const SEGMENT_LABEL: Record<TimelineSegment["kind"], string> = {
@@ -41,6 +41,7 @@ export function TimelineGantt() {
   return (
     <Card>
       <CardHeader
+        eyebrow="Schedule"
         title="Event Timeline"
         subtitle="Relationship work spans before & after the event day — prep, deadlines, follow-up."
         action={<Legend />}

@@ -1,52 +1,118 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/PageHeader";
+import { SectionLabel } from "@/components/ui/PageHeader";
+import { Reveal } from "@/components/ui/Reveal";
 import { ExecutiveSummaryStrip } from "@/components/dashboard/ExecutiveSummaryStrip";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { NextBestEvents } from "@/components/dashboard/NextBestEvents";
 import { TimelineGantt } from "@/components/dashboard/TimelineGantt";
 import { KpiGrid } from "@/components/dashboard/KpiGrid";
 import { EventTable } from "@/components/events/EventTable";
-import { getDashboardKpis } from "@/lib/api";
+import { getDashboardKpis, getDashboardSummary } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 
 export default function DashboardPage() {
   const { data: kpis, loading } = useAsync(() => getDashboardKpis(), []);
+  const { data: summary } = useAsync(() => getDashboardSummary(), []);
+
+  const today = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <PageHeader
-        title="Event Dashboard"
-        subtitle="Event Intelligence & Relationship-ROI control center — which events build lasting student relationships."
-      />
-
-      {/* 1.1 Executive Summary Strip */}
-      <ExecutiveSummaryStrip />
-
-      {/* 1.2 Performance Chart + 1.3 Next Best Events */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <PerformanceChart />
+    <div className="mx-auto max-w-editorial">
+      {/* ── Masthead: asymmetric — editorial headline + one oversized figure ── */}
+      <header className="mb-12 grid grid-cols-1 items-end gap-8 border-b border-we-line pb-9 lg:grid-cols-[1fr_auto]">
+        <div className="max-w-2xl">
+          <div className="eyebrow mb-4">Control Center · {today}</div>
+          <h1 className="font-display text-display-sm font-medium leading-[1.04] text-we-ink md:text-display-lg">
+            Event intelligence,
+            <br />
+            <span className="italic text-we-red">measured in relationships.</span>
+          </h1>
+          <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-we-slate">
+            Which events build lasting student relationships — and which formats to
+            repeat, fix, or retire. Not commercial vanity metrics; brand retention and
+            continuity.
+          </p>
         </div>
-        <NextBestEvents />
-      </div>
 
-      {/* 1.4 Timeline / Gantt */}
-      <TimelineGantt />
+        {summary && (
+          <div className="flex gap-10 lg:flex-col lg:items-end lg:gap-6 lg:border-l lg:border-we-line lg:pl-10">
+            <Figure
+              value={String(summary.avg_relationship_engagement)}
+              unit="/100"
+              label="Avg. engagement"
+            />
+            <Figure
+              value={`↑ ${Math.abs(summary.returning_user_trend.delta_pct)}%`}
+              label="Returning trend"
+              accent
+            />
+          </div>
+        )}
+      </header>
 
-      {/* 1.5 Global KPI context */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-we-slate">
-          KPI & Relationship-ROI context
-        </h2>
+      {/* ── 01 Overview ── */}
+      <Reveal as="section" className="mb-16">
+        <SectionLabel index="01" title="Overview" hint="What needs attention right now" />
+        <ExecutiveSummaryStrip />
+      </Reveal>
+
+      {/* ── 02 Performance + recommendations (asymmetric 8/4) ── */}
+      <Reveal as="section" className="mb-16">
+        <SectionLabel index="02" title="Performance" hint="Relationship & brand, not commercial" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.9fr_1fr]">
+          <PerformanceChart />
+          <NextBestEvents />
+        </div>
+      </Reveal>
+
+      {/* ── 03 Timeline ── */}
+      <Reveal as="section" className="mb-16">
+        <SectionLabel index="03" title="Timeline" hint="Prep · event · follow-up windows" />
+        <TimelineGantt />
+      </Reveal>
+
+      {/* ── 04 KPI context ── */}
+      <Reveal as="section" className="mb-16">
+        <SectionLabel index="04" title="Key figures" hint="Through a relationship-ROI lens" />
         <KpiGrid kpis={kpis} loading={loading} />
-      </section>
+      </Reveal>
 
-      {/* All events overview (click → Event Detail) */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-we-slate">All events</h2>
+      {/* ── 05 All events ── */}
+      <Reveal as="section" className="mb-4">
+        <SectionLabel index="05" title="All events" hint="Click to open the detail view" />
         <EventTable />
-      </section>
+      </Reveal>
+    </div>
+  );
+}
+
+function Figure({
+  value,
+  unit,
+  label,
+  accent,
+}: {
+  value: string;
+  unit?: string;
+  label: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="text-left lg:text-right">
+      <div
+        className={`tnum text-4xl font-medium leading-none ${
+          accent ? "text-we-red" : "text-we-ink"
+        }`}
+      >
+        {value}
+        {unit && <span className="ml-1 text-base font-normal text-we-muted">{unit}</span>}
+      </div>
+      <div className="eyebrow mt-2">{label}</div>
     </div>
   );
 }

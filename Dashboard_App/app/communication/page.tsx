@@ -19,6 +19,7 @@ export default function CommunicationPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
+        eyebrow="Messages"
         title="Communication Hub"
         subtitle="One place for internal coordination and student conversations — sorted by priority, not a flat inbox."
       />

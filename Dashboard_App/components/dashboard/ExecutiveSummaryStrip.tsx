@@ -6,112 +6,135 @@ import { useAsync } from "@/lib/useAsync";
 import { Skeleton } from "@/components/ui/States";
 import type { ExecutiveSummary } from "@/lib/types";
 
-/** Compact orientation strip for management (AGENT §1.1). Insights, not raw dumps. */
+/** Executive summary (AGENT §1.1) — art-directed as one asymmetric panel:
+ *  a lead "best event" hero + a quiet column of signals, then a recommendation
+ *  band. Composition over equal-weight tiles. */
 export function ExecutiveSummaryStrip() {
   const { data, loading } = useAsync(() => getDashboardSummary(), []);
 
   if (loading || !data) {
-    return (
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[88px] w-full rounded-card" />
-        ))}
-      </div>
-    );
+    return <Skeleton className="h-64 w-full rounded-card" />;
   }
 
   const s: ExecutiveSummary = data;
-  const trendArrow =
-    s.returning_user_trend.direction === "up"
-      ? "▲"
-      : s.returning_user_trend.direction === "down"
-      ? "▼"
-      : "▬";
+  const trend = s.returning_user_trend;
+  const arrow = trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→";
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      <Tile
-        label="Best performing event"
-        value={s.best_event?.title ?? "—"}
-        meta={s.best_event?.metric}
-        href={s.best_event ? `/events/${s.best_event.event_id}` : undefined}
-        tone="good"
-      />
-      <Tile
-        label="Weakest event"
-        value={s.weakest_event?.title ?? "—"}
-        meta={s.weakest_event?.metric}
-        href={s.weakest_event ? `/events/${s.weakest_event.event_id}` : undefined}
-        tone="risk"
-      />
-      <Tile
-        label="Most urgent follow-up"
-        value={s.most_urgent_follow_up_cluster?.label ?? "—"}
-        meta={
-          s.most_urgent_follow_up_cluster
-            ? `${s.most_urgent_follow_up_cluster.count} contacts`
-            : undefined
-        }
-        tone="warn"
-      />
-      <Tile
-        label="Returning-user trend"
-        value={`${trendArrow} ${s.returning_user_trend.delta_pct}%`}
-        meta={`Avg. engagement ${s.avg_relationship_engagement}/100`}
-        tone={s.returning_user_trend.direction === "down" ? "risk" : "good"}
-      />
+    <div className="overflow-hidden rounded-card border border-we-line bg-we-surface">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
+        {/* Lead: best performing event */}
+        <Link
+          href={s.best_event ? `/events/${s.best_event.event_id}` : "#"}
+          className="group relative flex flex-col justify-between gap-8 border-b border-we-line p-8 transition-colors hover:bg-we-canvas/40 lg:border-b-0 lg:border-r"
+        >
+          <div>
+            <div className="eyebrow mb-4">Best performing · this quarter</div>
+            <h3 className="font-display text-2xl font-medium leading-tight text-we-ink md:text-3xl">
+              {s.best_event?.title ?? "—"}
+            </h3>
+          </div>
+          <div className="flex items-end justify-between">
+            <div className="tnum text-4xl font-medium text-we-ink">
+              {s.highest_relationship_roi?.value ?? "—"}
+              <span className="ml-1.5 font-sans text-sm font-normal text-we-muted">
+                Relationship-ROI
+              </span>
+            </div>
+            <span className="text-[13px] font-medium text-we-muted transition-colors group-hover:text-we-red">
+              View event →
+            </span>
+          </div>
+        </Link>
 
-      {/* Second row: pipeline + next best event recommendation */}
-      <div className="col-span-2 rounded-card border border-we-line bg-we-surface p-4 shadow-card md:col-span-1">
-        <div className="text-xs font-medium text-we-muted">Pipeline</div>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Pip n={s.pipeline_status.planned} label="planned" />
-          <Pip n={s.pipeline_status.upcoming} label="upcoming" />
-          <Pip n={s.pipeline_status.ongoing} label="ongoing" />
-          <Pip n={s.pipeline_status.past} label="past" />
+        {/* Quiet signal column, divided by hairlines */}
+        <div className="divide-y divide-we-line">
+          <Signal
+            label="Avg. relationship engagement"
+            value={String(s.avg_relationship_engagement)}
+            unit="/100"
+          />
+          <Signal
+            label="Returning-user trend"
+            value={`${arrow} ${Math.abs(trend.delta_pct)}%`}
+            tone={trend.direction === "down" ? "risk" : "good"}
+          />
+          <div className="px-6 py-[18px]">
+            <div className="eyebrow mb-1.5">Weakest event</div>
+            <Link
+              href={s.weakest_event ? `/events/${s.weakest_event.event_id}` : "#"}
+              className="link-underline text-[14px] font-medium text-we-ink"
+            >
+              {s.weakest_event?.title ?? "—"}
+            </Link>
+            <div className="tnum mt-0.5 text-[12px] text-we-muted">
+              {s.weakest_event?.metric}
+            </div>
+          </div>
+          <div className="px-6 py-[18px]">
+            <div className="eyebrow mb-2">Pipeline</div>
+            <div className="tnum flex gap-4 text-[13px] text-we-slate">
+              <span>
+                <span className="text-we-ink">{s.pipeline_status.ongoing}</span> ongoing
+              </span>
+              <span>
+                <span className="text-we-ink">{s.pipeline_status.upcoming}</span> upcoming
+              </span>
+              <span>
+                <span className="text-we-ink">{s.pipeline_status.past}</span> past
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="col-span-2 rounded-card border border-we-red-soft bg-we-red-soft p-4 shadow-card md:col-span-3">
-        <div className="text-xs font-medium text-we-red">Next best recommended event</div>
-        <div className="mt-1 text-sm font-semibold text-we-ink">
-          {s.next_best_event?.title ?? "—"}
+
+      {/* Recommendation band — the single editorial accent */}
+      {s.next_best_event && (
+        <div className="flex flex-col gap-4 border-t border-we-line bg-we-canvas/50 p-8 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="we-line mt-2.5 shrink-0" />
+            <div>
+              <div className="eyebrow mb-1.5">Recommended next move</div>
+              <h4 className="font-display text-lg font-medium text-we-ink">
+                {s.next_best_event.title}
+              </h4>
+              <p className="mt-1 max-w-xl text-[13.5px] leading-relaxed text-we-slate">
+                {s.next_best_event.reason}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/create"
+            className="shrink-0 self-start whitespace-nowrap text-[13px] font-medium text-we-ink transition-colors hover:text-we-red md:self-center"
+          >
+            Plan it →
+          </Link>
         </div>
-        <div className="mt-0.5 text-xs text-we-slate">{s.next_best_event?.reason}</div>
-      </div>
+      )}
     </div>
   );
 }
 
-function Tile({
+function Signal({
   label,
   value,
-  meta,
-  href,
+  unit,
   tone,
 }: {
   label: string;
   value: string;
-  meta?: string;
-  href?: string;
-  tone: "good" | "warn" | "risk";
+  unit?: string;
+  tone?: "good" | "risk";
 }) {
-  const bar =
-    tone === "good" ? "bg-status-good" : tone === "warn" ? "bg-status-warn" : "bg-status-risk";
-  const inner = (
-    <div className="relative overflow-hidden rounded-card border border-we-line bg-we-surface p-4 shadow-card transition-shadow hover:shadow-card-hover">
-      <span className={`absolute left-0 top-0 h-full w-1 ${bar}`} />
-      <div className="text-xs font-medium text-we-muted">{label}</div>
-      <div className="mt-1 line-clamp-2 text-sm font-semibold text-we-ink">{value}</div>
-      {meta && <div className="mt-0.5 text-xs text-we-slate">{meta}</div>}
-    </div>
-  );
-  return href ? <Link href={href}>{inner}</Link> : inner;
-}
-
-function Pip({ n, label }: { n: number; label: string }) {
+  const color =
+    tone === "good" ? "text-status-good" : tone === "risk" ? "text-status-risk" : "text-we-ink";
   return (
-    <span className="text-we-slate">
-      <span className="font-semibold text-we-ink">{n}</span> {label}
-    </span>
+    <div className="px-6 py-[18px]">
+      <div className="eyebrow mb-1.5">{label}</div>
+      <div className={`tnum text-2xl font-medium ${color}`}>
+        {value}
+        {unit && <span className="ml-1 text-sm font-normal text-we-muted">{unit}</span>}
+      </div>
+    </div>
   );
 }
