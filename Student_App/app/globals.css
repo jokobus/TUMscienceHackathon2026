@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --we-red: #cc0000;
+  --we-canvas: #f5f6f8;
+  --we-ink: #1a1a1e;
+  --background: #f5f6f8;
+  --foreground: #1a1a1e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-we-red: var(--we-red);
+  --color-we-canvas: var(--we-canvas);
+  --color-we-ink: var(--we-ink);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none; /* Prevent safari bounce on the whole page */
+}
+
+/* Hide scrollbars globally to mimic a native app */
+* {
+  scrollbar-width: none; /* Firefox */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* WE-Line: the brand's signature thin accent rule */
+.we-line {
+  height: 3px;
+  width: 40px;
+  background-color: var(--we-red);
+  border-radius: 2px;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+@keyframes scan {
+  0%, 100% {
+    top: 0;
+  }
+  50% {
+    top: 100%;
+  }
+}
