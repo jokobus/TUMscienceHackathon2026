@@ -51,6 +51,7 @@ def signup(body: SignupRequest, db: Session = Depends(get_db)) -> AuthResponse:
         display_name=body.display_name,
     )
     db.add(user)
+    db.flush()  # ensure the user row exists before its profile (FK on Postgres)
     if body.role == "student":
         db.add(StudentProfile(user_id=user.id))
     else:

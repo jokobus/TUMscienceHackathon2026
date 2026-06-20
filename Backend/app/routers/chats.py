@@ -7,12 +7,13 @@ from sqlalchemy.orm import Session
 
 from app.db import gen_id, get_db
 from app.deps import get_current_user
-from app.errors import not_found
+from app.errors import forbidden, not_found
 from app.messaging import post_message
 from app.models import (
     Chat,
     ChatParticipant,
     EmployeeProfile,
+    EventRegistration,
     Message,
     StudentProfile,
     User,
@@ -40,13 +41,45 @@ def _existing_dm(db: Session, a: str, b: str) -> str | None:
     return None
 
 
+def _allowed_contact_ids(db: Session, student_id: str) -> set[str]:
+    """People a student is allowed to start a chat with (MASTER §6.6 / AGENT_STUDENT_APP):
+    only those they already share a chat with, or co-attended an event with —
+    not arbitrary recruiters or other students."""
+    allowed: set[str] = set()
+    # Members of any chat the student is already part of (DMs + event channels).
+    my_chat_ids = list(
+        db.scalars(select(ChatParticipant.chat_id).where(ChatParticipant.user_id == student_id))
+    )
+    if my_chat_ids:
+        for uid in db.scalars(
+            select(ChatParticipant.user_id).where(ChatParticipant.chat_id.in_(my_chat_ids))
+        ):
+            allowed.add(uid)
+    # Co-attendees: anyone registered to an event the student is registered to.
+    my_event_ids = list(
+        db.scalars(select(EventRegistration.event_id).where(EventRegistration.user_id == student_id))
+    )
+    if my_event_ids:
+        for uid in db.scalars(
+            select(EventRegistration.user_id).where(EventRegistration.event_id.in_(my_event_ids))
+        ):
+            allowed.add(uid)
+    allowed.discard(student_id)
+    return allowed
+
+
 @router.get("/search-people", response_model=list[PersonSearchResultOut])
 def search_people(
     q: str = Query(""), db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     term = q.strip().lower()
+    # Students may only discover people they already share a chat with or
+    # co-attended an event with — not arbitrary recruiters or students.
+    allowed = _allowed_contact_ids(db, user.id) if user.role == "student" else None
     results: list[dict] = []
     for u in db.scalars(select(User).where(User.id != user.id)):
+        if allowed is not None and u.id not in allowed:
+            continue
         if u.role == "student":
             prof = db.get(StudentProfile, u.id)
             context = " · ".join(filter(None, [prof.university if prof else None, prof.study_degree if prof else None]))
@@ -89,6 +122,10 @@ def create_chat(
         existing = _existing_dm(db, user.id, other_id)
         if existing:
             return build_chat_summary(db, db.get(Chat, existing), user.id)
+    # Enforce the student contact restriction server-side: a student can only
+    # open a new chat with an allowed contact (co-attended or already connected).
+    if user.role == "student" and other_id and other_id not in _allowed_contact_ids(db, user.id):
+        raise forbidden("You can only message people you've met at an event or already connected with.")
     other = db.get(User, other_id) if other_id else None
     chat = Chat(id=gen_id("dm"), type=body.get("type", "dm"), title=other.display_name if other else "Conversation")
     db.add(chat)
