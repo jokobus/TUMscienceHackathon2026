@@ -77,15 +77,15 @@ export function Assistant() {
       {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
 
       <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
-        {/* Collapsed: small sparkle pill (Gemini-style) */}
+        {/* Collapsed: larger pill with permanently visible text */}
         {!open && (
           <button
             onClick={() => setOpen(true)}
             aria-label="Open WEave Assistant"
-            className="group flex h-9 items-center justify-center gap-2 rounded-full border border-we-line bg-we-canvas px-5 shadow-md transition-colors hover:bg-we-surface"
+            className="flex h-11 items-center justify-center gap-2 rounded-full border border-we-line bg-we-surface px-6 shadow-lg transition-all hover:bg-we-surface/80 hover:shadow-xl"
           >
-            <SparkleIcon className="h-4 w-4 text-we-red" />
-            <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm text-we-muted transition-all duration-200 group-hover:max-w-[100px]">
+            <SparkleIcon className="h-5 w-5 text-we-red" />
+            <span className="text-base font-medium text-we-ink">
               Ask WEave
             </span>
           </button>
