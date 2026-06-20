@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-zinc-200 text-wuerth-ink antialiased;
+  font-feature-settings: "cv11", "ss01";
+  /* Lock the page itself — no rubber-band / overscroll bounce anywhere. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* The whole app lives in a centered phone-width column so it looks like a
+   native mobile app on desktop and fills the screen on a phone. It is pinned to
+   the viewport height and never scrolls as a whole — only inner regions do. */
+.app-shell {
+  @apply mx-auto flex h-dvh w-full max-w-app flex-col overflow-hidden bg-wuerth-bg shadow-pop;
+}
+
+/* Hide scrollbars for horizontal chip rows / segmented controls */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  @apply relative overflow-hidden bg-zinc-200/70;
+}
+.skeleton::after {
+  @apply absolute inset-0;
+  content: "";
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
