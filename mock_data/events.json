@@ -1,0 +1,592 @@
+[
+  {
+    "id": "event-1",
+    "title": "Seminartag Waldenburg 2026",
+    "startDate": "2026-07-02T00:00:00.000Z",
+    "endDate": "2026-07-02T23:59:59.999Z",
+    "location": "Waldenburg, DE",
+    "department": "Bauelemente",
+    "description": "Technologie erleben, Wissen vertiefen, Kontakte knüpfen: Beim Seminartag Waldenburg 2026 erwarten Sie spannende Fachvorträge, exklusive Einblicke in Labor und Logistik sowie wertvolles Networking mit Experten der Elektronikbranche. Entdecken Sie aktuelle Trends, praxisnahe Lösungen und neue Impulse für Ihre Entwicklungsprojekte.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-2",
+    "title": "CSPI",
+    "startDate": "2026-06-17T00:00:00.000Z",
+    "endDate": "2026-06-20T23:59:59.999Z",
+    "location": "Chiba, JP",
+    "department": "Intelligente Systeme",
+    "description": "Join us at the CSPI happening in Chiba, JP. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Intelligente Systeme.",
+    "isUpcoming": false
+  },
+  {
+    "id": "event-3",
+    "title": "Einkäuferseminar",
+    "startDate": "2026-06-23T00:00:00.000Z",
+    "endDate": "2026-06-23T23:59:59.999Z",
+    "location": "Nürnberg",
+    "department": "Bauelemente",
+    "description": "Join us at the Einkäuferseminar happening in Nürnberg. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-4",
+    "title": "Tag des offenen EMV Labors",
+    "startDate": "2026-06-23T00:00:00.000Z",
+    "endDate": "2026-06-23T23:59:59.999Z",
+    "location": "Werdohl, DE",
+    "department": "Bauelemente",
+    "description": "Join us at the Tag des offenen EMV Labors happening in Werdohl, DE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-5",
+    "title": "Power Supply Hardware Design Workshop",
+    "startDate": "2026-06-23T00:00:00.000Z",
+    "endDate": "2026-06-26T23:59:59.999Z",
+    "location": "München, DE",
+    "department": "Bauelemente",
+    "description": "WE-Kunden erhalten einen exklusiven Rabatt von 10 %.\r\n\r\nRabattcode: WURTH10\r\n\r\nBei sofortiger Registrierung per Kreditkarte kann der Code im Checkout eingegeben werden. Bei manueller Registrierung per Angebot oder Bestellung (PO) geben Sie den Code bitte im Prozess an, damit der Rabatt berücksichtigt wird.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-6",
+    "title": "Digital Power Supply and PFC Design Workshop",
+    "startDate": "2026-06-23T00:00:00.000Z",
+    "endDate": "2026-06-26T23:59:59.999Z",
+    "location": "München, DE",
+    "department": "Bauelemente",
+    "description": "WE-Kunden erhalten einen exklusiven Rabatt von 10 %.\r\n\r\nRabattcode: WURTH10\r\n\r\nBei sofortiger Registrierung per Kreditkarte kann der Code im Checkout eingegeben werden. Bei manueller Registrierung per Angebot oder Bestellung (PO) geben Sie den Code bitte im Prozess an, damit der Rabatt berücksichtigt wird.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-7",
+    "title": "IKOM TU München",
+    "startDate": "2026-06-24T00:00:00.000Z",
+    "endDate": "2026-06-24T23:59:59.999Z",
+    "location": "München , DE",
+    "department": "Karriere",
+    "description": "Join us at the IKOM TU München happening in München , DE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Karriere.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-8",
+    "title": "Power Electronics & EMI: From Design Validation to Compliance",
+    "startDate": "2026-06-25T00:00:00.000Z",
+    "endDate": "2026-06-25T23:59:59.999Z",
+    "location": "Dallas, TX, US",
+    "department": "Bauelemente",
+    "description": "Join us at the Power Electronics & EMI: From Design Validation to Compliance happening in Dallas, TX, US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-9",
+    "title": "EMC Seminar",
+    "startDate": "2026-06-26T00:00:00.000Z",
+    "endDate": "2026-06-26T23:59:59.999Z",
+    "location": "Gruyère",
+    "department": "Bauelemente",
+    "description": "Join us at the EMC Seminar happening in Gruyère. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-10",
+    "title": "Barlag Jobmesse München Airport",
+    "startDate": "2026-06-27T00:00:00.000Z",
+    "endDate": "2026-06-28T23:59:59.999Z",
+    "location": "München, DE",
+    "department": "Karriere",
+    "description": "Join us at the Barlag Jobmesse München Airport happening in München, DE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Karriere.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-11",
+    "title": "Anwenderkongress Steckverbinder",
+    "startDate": "2026-06-29T00:00:00.000Z",
+    "endDate": "2026-07-01T23:59:59.999Z",
+    "location": "Würzburg, DE",
+    "department": "Bauelemente",
+    "description": "Join us at the Anwenderkongress Steckverbinder happening in Würzburg, DE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-12",
+    "title": "EMC Filter Design Workshop",
+    "startDate": "2026-06-30T00:00:00.000Z",
+    "endDate": "2026-07-02T23:59:59.999Z",
+    "location": "München, DE",
+    "department": "Bauelemente",
+    "description": "WE-Kunden erhalten einen exklusiven Rabatt von 10 %.\r\n\r\nRabattcode: WURTH10\r\n\r\nBei sofortiger Registrierung per Kreditkarte kann der Code im Checkout eingegeben werden. Bei manueller Registrierung per Angebot oder Bestellung (PO) geben Sie den Code bitte im Prozess an, damit der Rabatt berücksichtigt wird.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-13",
+    "title": "EMV Seminar ",
+    "startDate": "2026-06-30T00:00:00.000Z",
+    "endDate": "2026-06-30T23:59:59.999Z",
+    "location": "Ilmenau",
+    "department": "Bauelemente",
+    "description": "Join us at the EMV Seminar  happening in Ilmenau. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-14",
+    "title": "Customer seminar",
+    "startDate": "2026-06-30T00:00:00.000Z",
+    "endDate": "2026-06-30T23:59:59.999Z",
+    "location": "Adelaide",
+    "department": "Bauelemente",
+    "description": "Join us at the Customer seminar happening in Adelaide. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-15",
+    "title": "Customer seminar",
+    "startDate": "2026-07-02T00:00:00.000Z",
+    "endDate": "2026-07-02T23:59:59.999Z",
+    "location": "Perth",
+    "department": "",
+    "description": "Join us at the Customer seminar happening in Perth. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of electronics.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-17",
+    "title": "EMV-Design-Grundlagen: Varistoren und Gleichtaktdrosseln sicher einsetzen",
+    "startDate": "2026-07-14T00:00:00.000Z",
+    "endDate": "2026-07-14T23:59:59.999Z",
+    "location": "Online",
+    "department": "Bauelemente",
+    "description": "Join us at the EMV-Design-Grundlagen: Varistoren und Gleichtaktdrosseln sicher einsetzen happening in Online. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-18",
+    "title": "EMC Design Essentials: Mastering Varistors and Common Mode Chokes",
+    "startDate": "2026-07-14T00:00:00.000Z",
+    "endDate": "2026-07-14T23:59:59.999Z",
+    "location": "Online",
+    "department": "Bauelemente",
+    "description": "Join us at the EMC Design Essentials: Mastering Varistors and Common Mode Chokes happening in Online. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-19",
+    "title": "EMC & RF Seminar",
+    "startDate": "2026-07-21T00:00:00.000Z",
+    "endDate": "2026-07-21T23:59:59.999Z",
+    "location": "Overland Park, KS, US",
+    "department": "Bauelemente",
+    "description": "Join us at the EMC & RF Seminar happening in Overland Park, KS, US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-20",
+    "title": "Safety by Design: X und Y Entstörkondensatoren für Netzfilter",
+    "startDate": "2026-07-21T00:00:00.000Z",
+    "endDate": "2026-07-21T23:59:59.999Z",
+    "location": "Online",
+    "department": "Bauelemente",
+    "description": "Join us at the Safety by Design: X und Y Entstörkondensatoren für Netzfilter happening in Online. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-21",
+    "title": "Safety by design: X and Y Interference suppression capacitors for power line filters",
+    "startDate": "2026-07-21T00:00:00.000Z",
+    "endDate": "2026-07-21T23:59:59.999Z",
+    "location": "Online",
+    "department": "Bauelemente",
+    "description": "Join us at the Safety by design: X and Y Interference suppression capacitors for power line filters happening in Online. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-23",
+    "title": "IEEE EMC + SiPi",
+    "startDate": "2026-08-03T00:00:00.000Z",
+    "endDate": "2026-08-07T23:59:59.999Z",
+    "location": "Dallas, TX, US",
+    "department": "Bauelemente",
+    "description": "Join us at the IEEE EMC + SiPi happening in Dallas, TX, US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-24",
+    "title": "IEEE EMC + SiPi 2026",
+    "startDate": "2026-08-03T00:00:00.000Z",
+    "endDate": "2026-08-07T23:59:59.999Z",
+    "location": "Dallas, TX, US",
+    "department": "Bauelemente",
+    "description": "Join us at the IEEE EMC + SiPi 2026 happening in Dallas, TX, US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-25",
+    "title": "EMC Europe",
+    "startDate": "2026-08-31T00:00:00.000Z",
+    "endDate": "2026-09-04T23:59:59.999Z",
+    "location": "Prag, CZ",
+    "department": "Bauelemente",
+    "description": "Join us at the EMC Europe happening in Prag, CZ. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-26",
+    "title": "Tek.day Gdansk 2026",
+    "startDate": "2026-09-11T00:00:00.000Z",
+    "endDate": "2026-09-11T23:59:59.999Z",
+    "location": "Gdansk, PL",
+    "department": "Bauelemente",
+    "description": "Join us at the Tek.day Gdansk 2026 happening in Gdansk, PL. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-27",
+    "title": "bauma Conexpo India",
+    "startDate": "2026-09-15T00:00:00.000Z",
+    "endDate": "2026-09-18T23:59:59.999Z",
+    "location": "Greater Noida, IN",
+    "department": "Intelligente Systeme",
+    "description": "Halle 16, Stand A11",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-28",
+    "title": "SIDO Lyon",
+    "startDate": "2026-09-16T00:00:00.000Z",
+    "endDate": "2026-09-17T23:59:59.999Z",
+    "location": "Lyon, FR",
+    "department": "Bauelemente",
+    "description": "Join us at the SIDO Lyon happening in Lyon, FR. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-29",
+    "title": "electronica India 2026",
+    "startDate": "2026-09-16T00:00:00.000Z",
+    "endDate": "2026-09-18T23:59:59.999Z",
+    "location": "Bengaluru, IN",
+    "department": "Bauelemente",
+    "description": "Find us in hall 3 Booth&nbsp;H3.I11",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-30",
+    "title": "Evertiq Expo",
+    "startDate": "2026-09-17T00:00:00.000Z",
+    "endDate": "2026-09-17T23:59:59.999Z",
+    "location": "Göteborg, SE",
+    "department": "Leiterplatten, Bauelemente",
+    "description": "Join us at the Evertiq Expo happening in Göteborg, SE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Leiterplatten, Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-31",
+    "title": "Hohenloher Wirtschaftsmesse",
+    "startDate": "2026-09-18T00:00:00.000Z",
+    "endDate": "2026-09-20T23:59:59.999Z",
+    "location": "Künzelsau, DE",
+    "department": "Leiterplatten, Bauelemente, Intelligente Systeme",
+    "description": "Zelt: 5&nbsp;",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-32",
+    "title": "WOTS",
+    "startDate": "2026-09-22T00:00:00.000Z",
+    "endDate": "2026-09-25T23:59:59.999Z",
+    "location": "Utrecht, NL",
+    "department": "Leiterplatten, Bauelemente",
+    "description": "Join us at the WOTS happening in Utrecht, NL. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Leiterplatten, Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-33",
+    "title": "FIAA",
+    "startDate": "2026-09-22T00:00:00.000Z",
+    "endDate": "2026-09-25T23:59:59.999Z",
+    "location": "Madrid, ES",
+    "department": "Intelligente Systeme",
+    "description": "Join us at the FIAA happening in Madrid, ES. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Intelligente Systeme.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-34",
+    "title": "2026 MN EMC",
+    "startDate": "2026-09-22T00:00:00.000Z",
+    "endDate": "2026-09-22T23:59:59.999Z",
+    "location": "Bloomington, MN, US",
+    "department": "Bauelemente",
+    "description": "Join us at the 2026 MN EMC happening in Bloomington, MN, US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-35",
+    "title": "NW Electronics Design & Manufacturing Expo",
+    "startDate": "2026-09-23T00:00:00.000Z",
+    "endDate": "2026-09-23T23:59:59.999Z",
+    "location": "Hillsboro, , US",
+    "department": "Bauelemente",
+    "description": "Join us at the NW Electronics Design & Manufacturing Expo happening in Hillsboro, , US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-36",
+    "title": "Cybersecurity 2026: CRA‑Pflichten, aktuelle Bedrohungen & Live‑Q&A für Elektronikentwickler",
+    "startDate": "2026-09-29T00:00:00.000Z",
+    "endDate": "2026-09-29T23:59:59.999Z",
+    "location": "Online",
+    "department": "Bauelemente",
+    "description": "Join us at the Cybersecurity 2026: CRA‑Pflichten, aktuelle Bedrohungen & Live‑Q&A für Elektronikentwickler happening in Online. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-37",
+    "title": "Cybersecurity 2026: CRA Requirements, Emerging Threats & Live Q&A for Electronics Engineers",
+    "startDate": "2026-09-29T00:00:00.000Z",
+    "endDate": "2026-09-29T23:59:59.999Z",
+    "location": "Online",
+    "department": "Bauelemente",
+    "description": "Join us at the Cybersecurity 2026: CRA Requirements, Emerging Threats & Live Q&A for Electronics Engineers happening in Online. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-38",
+    "title": "Technologietag Leiterplatte Würzburg ",
+    "startDate": "2026-09-29T00:00:00.000Z",
+    "endDate": "2026-09-30T23:59:59.999Z",
+    "location": "Würzburg, DE",
+    "department": "Leiterplatten",
+    "description": "Join us at the Technologietag Leiterplatte Würzburg  happening in Würzburg, DE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Leiterplatten.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-39",
+    "title": "EuMW",
+    "startDate": "2026-10-04T00:00:00.000Z",
+    "endDate": "2026-10-09T23:59:59.999Z",
+    "location": "London, UK",
+    "department": "Bauelemente",
+    "description": "Join us at the EuMW happening in London, UK. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-40",
+    "title": "APTA",
+    "startDate": "2026-10-05T00:00:00.000Z",
+    "endDate": "2026-10-07T23:59:59.999Z",
+    "location": "Chicago, IL, US",
+    "department": "Intelligente Systeme",
+    "description": "Join us at the APTA happening in Chicago, IL, US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Intelligente Systeme.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-41",
+    "title": "Engineering Design Show 2026",
+    "startDate": "2026-10-07T00:00:00.000Z",
+    "endDate": "2026-10-08T23:59:59.999Z",
+    "location": "Coventry, UK",
+    "department": "Bauelemente",
+    "description": "Join us at the Engineering Design Show 2026 happening in Coventry, UK. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-42",
+    "title": "The Battery Show",
+    "startDate": "2026-10-13T00:00:00.000Z",
+    "endDate": "2026-10-15T23:59:59.999Z",
+    "location": "Detroit, MI, US",
+    "department": "Intelligente Systeme",
+    "description": "Join us at the The Battery Show happening in Detroit, MI, US. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Intelligente Systeme.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-44",
+    "title": "AIM for students",
+    "startDate": "2026-10-21T00:00:00.000Z",
+    "endDate": "2026-10-21T23:59:59.999Z",
+    "location": "Aalen, DE",
+    "department": "Karriere",
+    "description": "Join us at the AIM for students happening in Aalen, DE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Karriere.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-45",
+    "title": "Evertiq Expo Warsaw 2026",
+    "startDate": "2026-10-22T00:00:00.000Z",
+    "endDate": "2026-10-22T23:59:59.999Z",
+    "location": "Warsaw, PL",
+    "department": "Bauelemente",
+    "description": "Join us at the Evertiq Expo Warsaw 2026 happening in Warsaw, PL. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-46",
+    "title": "EPTECH Calgary",
+    "startDate": "2026-10-27T00:00:00.000Z",
+    "endDate": "2026-10-27T23:59:59.999Z",
+    "location": "Calgary, AB, CA",
+    "department": "Bauelemente",
+    "description": "Join us at the EPTECH Calgary happening in Calgary, AB, CA. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-47",
+    "title": "EMV Seminar",
+    "startDate": "2026-10-27T00:00:00.000Z",
+    "endDate": "2026-10-29T23:59:59.999Z",
+    "location": "Weiherhammer, DE",
+    "department": "Bauelemente",
+    "description": "Vom störanfälligen Gerät zum robusten Design: Das 3-Tages-Seminar vermittelt EMV-Grundlagen, Messpraxis und wirksame Gegenmaßnahmen. Mit 3D-Simulationen, Live-Demos und echtem Praxiswissen für Entwickler und Prüfverantwortliche.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-48",
+    "title": "Thermal Management and Interconnect Engineering Day",
+    "startDate": "2026-10-27T00:00:00.000Z",
+    "endDate": "2026-10-27T23:59:59.999Z",
+    "location": "Vilnius, LT",
+    "department": "Bauelemente",
+    "description": "Join us at the Thermal Management and Interconnect Engineering Day happening in Vilnius, LT. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-49",
+    "title": "Thermal Management and Interconnect Engineering Day",
+    "startDate": "2026-10-28T00:00:00.000Z",
+    "endDate": "2026-10-28T23:59:59.999Z",
+    "location": "Kaunas, LT",
+    "department": "Bauelemente",
+    "description": "Join us at the Thermal Management and Interconnect Engineering Day happening in Kaunas, LT. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-50",
+    "title": "Thermal Management and Interconnect Engineering Day ",
+    "startDate": "2026-10-29T00:00:00.000Z",
+    "endDate": "2026-10-29T23:59:59.999Z",
+    "location": "Riga, LV",
+    "department": "Bauelemente",
+    "description": "Join us at the Thermal Management and Interconnect Engineering Day  happening in Riga, LV. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-51",
+    "title": "ITSF 2026 (International Timing and Sync Forum)",
+    "startDate": "2026-11-02T00:00:00.000Z",
+    "endDate": "2026-11-05T23:59:59.999Z",
+    "location": "Geneva, CH",
+    "department": "Bauelemente",
+    "description": "Join us at the ITSF 2026 (International Timing and Sync Forum) happening in Geneva, CH. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-52",
+    "title": "HF Seminar",
+    "startDate": "2026-11-03T00:00:00.000Z",
+    "endDate": "2026-11-04T23:59:59.999Z",
+    "location": "Weiherhammer, DE",
+    "department": "Bauelemente",
+    "description": "Praxisnaher Einstieg in die Hochfrequenztechnik: Verstehen Sie Leitungen, S-Parameter, Messtechnik, Antennen und HF-gerechtes Layout. Mit anschaulichen Messungen, Simulationen und einem klaren Bezug zur realen Entwicklungspraxis.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-53",
+    "title": "EMV-Industrieseminare",
+    "startDate": "2026-11-03T00:00:00.000Z",
+    "endDate": "2026-11-03T23:59:59.999Z",
+    "location": "Magdeburg",
+    "department": "Bauelemente",
+    "description": "Join us at the EMV-Industrieseminare happening in Magdeburg. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-54",
+    "title": "Technisches Einkäuferseminar",
+    "startDate": "2026-11-03T00:00:00.000Z",
+    "endDate": "2026-11-03T23:59:59.999Z",
+    "location": "Karlsruhe",
+    "department": "Bauelemente",
+    "description": "Join us at the Technisches Einkäuferseminar happening in Karlsruhe. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-55",
+    "title": "EMV für Geräte- und Maschinenbauer",
+    "startDate": "2026-11-05T00:00:00.000Z",
+    "endDate": "2026-11-05T23:59:59.999Z",
+    "location": "Weiherhammer, DE",
+    "department": "Bauelemente",
+    "description": "Störungen in der Anlage abstellen oder besser ganz vermeiden: Diese Schulung zeigt EMV-gerechte Konstruktion, Schaltschrankbau, CE-Konformität, Antriebe, ESD und praxisnahe Fehlersuche für Maschinen- und Gerätebauer.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-56",
+    "title": "Fachkräftetage Ilshofen",
+    "startDate": "2026-11-07T00:00:00.000Z",
+    "endDate": "2026-11-08T23:59:59.999Z",
+    "location": "Ilshofen, DE",
+    "department": "Karriere",
+    "description": "Join us at the Fachkräftetage Ilshofen happening in Ilshofen, DE. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Karriere.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-57",
+    "title": "electronica",
+    "startDate": "2026-11-10T00:00:00.000Z",
+    "endDate": "2026-11-13T23:59:59.999Z",
+    "location": "München, DE",
+    "department": "Leiterplatten, Bauelemente, Intelligente Systeme",
+    "description": "Messe München",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-58",
+    "title": "Space Tech Expo Europe 2026",
+    "startDate": "2026-11-17T00:00:00.000Z",
+    "endDate": "2026-11-19T23:59:59.999Z",
+    "location": "Bremen, DE",
+    "department": "Leiterplatten",
+    "description": "Die Vernetzung von Europas Raumfahrt-Lieferkette.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-59",
+    "title": "IX  Spanish Electromagnetic Compatibility Conference",
+    "startDate": "2026-11-18T00:00:00.000Z",
+    "endDate": "2026-11-20T23:59:59.999Z",
+    "location": "Zaragoza, ES",
+    "department": "Bauelemente",
+    "description": "Join us at the IX  Spanish Electromagnetic Compatibility Conference happening in Zaragoza, ES. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-60",
+    "title": "FED Austrian Electronics Day 2026",
+    "startDate": "2026-11-26T00:00:00.000Z",
+    "endDate": "2026-11-26T23:59:59.999Z",
+    "location": "Dornbirn, AT",
+    "department": "Bauelemente",
+    "description": "Join us at the FED Austrian Electronics Day 2026 happening in Dornbirn, AT. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Bauelemente.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-61",
+    "title": "Manufacturing & Engineering Northeast",
+    "startDate": "2026-11-26T00:00:00.000Z",
+    "endDate": "2026-11-26T23:59:59.999Z",
+    "location": "Newcastle, UK",
+    "department": "Leiterplatten",
+    "description": "Join us at the Manufacturing & Engineering Northeast happening in Newcastle, UK. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Leiterplatten.",
+    "isUpcoming": true
+  },
+  {
+    "id": "event-62",
+    "title": "FED Austria Electronics Day",
+    "startDate": "2026-11-26T00:00:00.000Z",
+    "endDate": "2026-11-26T23:59:59.999Z",
+    "location": "Dornbirn, AT",
+    "department": "Leiterplatten",
+    "description": "Join us at the FED Austria Electronics Day happening in Dornbirn, AT. Discover the latest technologies, connect with industry experts, and explore innovative solutions in the field of Leiterplatten.",
+    "isUpcoming": true
+  }
+]
