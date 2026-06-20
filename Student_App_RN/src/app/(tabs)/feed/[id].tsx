@@ -15,13 +15,22 @@ import {
   ArrowLeft,
   Calendar,
   Clock,
+  Download,
   FileText,
   ImagePlus,
   MapPin,
   Send,
   Share2,
+  Star,
+  X,
 } from "lucide-react-native";
-import type { ApplicationInfo, Material, Memory, WeaveEvent } from "@/lib/types";
+import type {
+  ApplicationInfo,
+  InteractionType,
+  Material,
+  Memory,
+  WeaveEvent,
+} from "@/lib/types";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
@@ -47,6 +56,14 @@ function regSeed(id: string): number {
   return n + 1;
 }
 
+const INTERESTS: { type: InteractionType; label: string }[] = [
+  { type: "sample_interest", label: "Request a sample" },
+  { type: "project_interest", label: "Project interest" },
+  { type: "career_interest", label: "Career interest" },
+  { type: "question_asked", label: "Ask a question" },
+  { type: "follow_up_request", label: "Request follow-up" },
+];
+
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -62,12 +79,19 @@ export default function EventDetailScreen() {
   const [memoryText, setMemoryText] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [showImageInput, setShowImageInput] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
 
   const [files, setFiles] = useState<{ items: Material[]; hiddenReason: string | null } | null>(null);
 
   const [appInfo, setAppInfo] = useState<ApplicationInfo | null>(null);
   const [appOpen, setAppOpen] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  // Feedback (end-of-event recommendation / NPS / text).
+  const [fbOpen, setFbOpen] = useState(false);
+  const [rec, setRec] = useState(0);
+  const [nps, setNps] = useState<number | null>(null);
+  const [fbText, setFbText] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -120,7 +144,6 @@ export default function EventDetailScreen() {
   async function onPrimaryAction() {
     if (!event) return;
     if (isPast) {
-      // "Suggest Again" → repost
       if (!requireStudent()) return;
       try {
         await api.repostEvent(event.id);
@@ -136,7 +159,6 @@ export default function EventDetailScreen() {
       return;
     }
     if (event.applicationRequired) {
-      // open the application form (questions from the backend)
       if (!user) {
         toast("Sign in to apply.", "info");
         router.push("/login");
@@ -186,14 +208,43 @@ export default function EventDetailScreen() {
     const body = memoryText.trim() || (withImage ? "Shared a photo!" : "");
     if (!body && !imageUrl) return;
     try {
-      await api.postMemory(id!, body, withImage && imageUrl ? [imageUrl] : []);
+      await api.postMemory(id!, body, withImage && imageUrl ? [imageUrl] : [], replyTo?.id);
       setMemoryText("");
       setImageUrl("");
       setShowImageInput(false);
-      toast(withImage ? "Photo posted!" : "Memory posted!");
+      setReplyTo(null);
+      toast(replyTo ? "Reply posted!" : withImage ? "Photo posted!" : "Memory posted!");
       loadMemories();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not post memory.", "error");
+    }
+  }
+
+  async function onInterest(type: InteractionType, label: string) {
+    if (!requireStudent()) return;
+    try {
+      await api.logInteraction(type, id);
+      toast(`${label} ✓`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not send.", "error");
+    }
+  }
+
+  async function onSubmitFeedback() {
+    if (!requireStudent()) return;
+    if (!rec) {
+      toast("Pick a recommendation rating.", "info");
+      return;
+    }
+    try {
+      await api.submitFeedback(id!, rec, nps ?? undefined, fbText.trim() || undefined);
+      setFbOpen(false);
+      setRec(0);
+      setNps(null);
+      setFbText("");
+      toast("Thanks for your feedback!");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not submit feedback.", "error");
     }
   }
 
@@ -211,6 +262,12 @@ export default function EventDetailScreen() {
     toast(`Opening ${m.title}…`);
   }
 
+  async function onDownloadFile(m: Material) {
+    api.logInteraction("file_download", id, { material_id: m.id }).catch(() => {});
+    if (m.url && m.url !== "#") Linking.openURL(m.url).catch(() => {});
+    toast(`Downloading ${m.title}…`);
+  }
+
   if (!event) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
@@ -223,8 +280,40 @@ export default function EventDetailScreen() {
   const totalSpots = 20 + (seed * 7) % 80;
   const registered = Math.min(totalSpots - 1, 5 + (seed * 13) % (totalSpots - 3));
   const spotsLeft = totalSpots - registered;
-  const deadline = new Date(new Date(event.startAt).getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
   const regNow = registered + (applied ? 1 : 0);
+
+  // Application window (from backend dates; falls back to a 3-days-before deadline).
+  const now = Date.now();
+  const appOpenAt = event.applicationOpenAt ? new Date(event.applicationOpenAt).getTime() : null;
+  const appCloseAt = event.applicationCloseAt ? new Date(event.applicationCloseAt).getTime() : null;
+  const fallbackDeadline = new Date(new Date(event.startAt).getTime() - 3 * 864e5).toISOString();
+  const appUpcoming = event.applicationRequired && appOpenAt != null && now < appOpenAt;
+  const appClosed = event.applicationRequired && appCloseAt != null && now > appCloseAt;
+  const appBlocked = appUpcoming || appClosed; // not within the open window
+
+  const windowText = event.applicationRequired
+    ? appUpcoming
+      ? `Applications open ${formatShortDate(event.applicationOpenAt!)}`
+      : appClosed
+        ? `Applications closed ${formatShortDate(event.applicationCloseAt!)}`
+        : `Applications close ${formatShortDate(event.applicationCloseAt ?? fallbackDeadline)}`
+    : null;
+
+  const primaryLabel = isPast
+    ? "Suggest Again"
+    : applied
+      ? event.applicationRequired
+        ? "Application Submitted ✓"
+        : "Registered ✓"
+      : event.applicationRequired
+        ? appUpcoming
+          ? "Applications Upcoming"
+          : appClosed
+            ? "Applications Closed"
+            : "Submit Application"
+        : "Register Now";
+
+  const primaryDisabled = !isPast && !applied && appBlocked;
 
   const tabBtn = (value: Tab, label: string) => (
     <Pressable
@@ -235,6 +324,48 @@ export default function EventDetailScreen() {
         {label}
       </Text>
     </Pressable>
+  );
+
+  const topLevelMemories = memories.filter((m) => !m.parentId);
+  const repliesByParent = memories.reduce<Record<string, Memory[]>>((acc, m) => {
+    if (m.parentId) (acc[m.parentId] ??= []).push(m);
+    return acc;
+  }, {});
+
+  const renderMemory = (m: Memory, isReply = false) => (
+    <View
+      key={m.id}
+      className={cn(
+        "flex-row gap-3 rounded-2xl border border-gray-100 bg-white p-4",
+        isReply && "ml-6 bg-gray-50"
+      )}
+    >
+      <View className="h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+        <Text className="font-bold text-gray-500">{(m.authorName ?? "?")[0]?.toUpperCase()}</Text>
+      </View>
+      <View className="flex-1">
+        <View className="mb-1 flex-row items-center gap-2">
+          <Text className="text-sm font-bold text-we-ink">{m.authorName ?? "Student"}</Text>
+          <Text className="text-xs text-gray-400">{localeDate(m.createdAt)}</Text>
+        </View>
+        <Text className="mb-2 text-sm leading-relaxed text-gray-600">{m.body}</Text>
+        {m.images?.[0] && (
+          <Image
+            source={{ uri: m.images[0] }}
+            contentFit="cover"
+            style={{ width: "100%", height: 180, borderRadius: 12 }}
+          />
+        )}
+        {!isReply && (
+          <Pressable
+            onPress={() => setReplyTo({ id: m.id, name: m.authorName ?? "Student" })}
+            className="mt-1 self-start"
+          >
+            <Text className="text-xs font-semibold text-we-red">Reply</Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
   );
 
   return (
@@ -326,10 +457,6 @@ export default function EventDetailScreen() {
                       </Text>
                     </View>
                     <View className="w-1/2">
-                      <Text className="mb-0.5 text-sm text-gray-500">Deadline</Text>
-                      <Text className="font-bold text-we-ink">{formatShortDate(deadline)}</Text>
-                    </View>
-                    <View className="w-1/2">
                       <Text className="mb-0.5 text-sm text-gray-500">Format</Text>
                       <Text className="font-bold text-we-ink">
                         {event.type === "hackathon" ? "In-Person" : seed % 3 === 0 ? "Hybrid" : "In-Person"}
@@ -347,10 +474,8 @@ export default function EventDetailScreen() {
 
               {/* Actions */}
               <View className="mt-8 gap-3 border-t border-gray-100 pt-6">
-                {event.applicationRequired && !isPast && (
-                  <Text className="text-sm text-gray-500">
-                    Application required • Closes {formatShortDate(deadline)}
-                  </Text>
+                {windowText && !isPast && (
+                  <Text className="text-sm text-gray-500">{windowText}</Text>
                 )}
                 <View className="flex-row gap-3">
                   <Pressable
@@ -369,27 +494,61 @@ export default function EventDetailScreen() {
                       <Text className="font-bold text-we-red">Check In</Text>
                     </Pressable>
                   )}
+
+                  {isPast && (
+                    <Pressable
+                      onPress={() => setFbOpen(true)}
+                      className="flex-1 flex-row items-center justify-center rounded-xl border border-we-red px-6 py-3"
+                    >
+                      <Star size={16} color={we.red} />
+                      <Text className="ml-2 font-bold text-we-red">Leave feedback</Text>
+                    </Pressable>
+                  )}
                 </View>
 
                 <Pressable
                   onPress={onPrimaryAction}
+                  disabled={primaryDisabled}
                   className={cn(
                     "flex-row items-center justify-center rounded-xl px-8 py-3",
-                    applied && !isPast ? "border border-green-200 bg-green-100" : "bg-we-ink"
+                    applied && !isPast
+                      ? "border border-green-200 bg-green-100"
+                      : primaryDisabled
+                        ? "bg-gray-200"
+                        : "bg-we-ink"
                   )}
                 >
-                  <Text className={cn("font-medium", applied && !isPast ? "text-green-800" : "text-white")}>
-                    {isPast
-                      ? "Suggest Again"
-                      : applied
-                        ? event.applicationRequired
-                          ? "Application Submitted ✓"
-                          : "Registered ✓"
-                        : event.applicationRequired
-                          ? "Submit Application"
-                          : "Register Now"}
+                  <Text
+                    className={cn(
+                      "font-medium",
+                      applied && !isPast
+                        ? "text-green-800"
+                        : primaryDisabled
+                          ? "text-gray-500"
+                          : "text-white"
+                    )}
+                  >
+                    {primaryLabel}
                   </Text>
                 </Pressable>
+              </View>
+
+              {/* Express interest */}
+              <View className="mt-8 border-t border-gray-100 pt-6">
+                <Text className="mb-3 text-sm font-bold uppercase tracking-wider text-we-ink">
+                  Express Interest
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {INTERESTS.map((it) => (
+                    <Pressable
+                      key={it.type}
+                      onPress={() => onInterest(it.type, it.label)}
+                      className="rounded-full border border-gray-200 bg-white px-4 py-2 active:bg-gray-50"
+                    >
+                      <Text className="text-sm font-medium text-gray-700">{it.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
             </View>
           )}
@@ -409,7 +568,7 @@ export default function EventDetailScreen() {
                     key={m.id}
                     className="flex-row items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4"
                   >
-                    <View className="flex-1 flex-row items-center">
+                    <Pressable className="flex-1 flex-row items-center" onPress={() => onOpenFile(m)}>
                       <View className="h-10 w-10 items-center justify-center rounded-lg bg-red-50">
                         <FileText size={20} color={we.red} />
                       </View>
@@ -419,9 +578,12 @@ export default function EventDetailScreen() {
                         </Text>
                         <Text className="text-xs text-gray-500">{m.type.toUpperCase()}</Text>
                       </View>
-                    </View>
-                    <Pressable onPress={() => onOpenFile(m)} className="rounded-lg px-4 py-2">
-                      <Text className="text-sm font-bold text-we-red">Open</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => onDownloadFile(m)}
+                      className="h-9 w-9 items-center justify-center rounded-lg bg-red-50"
+                    >
+                      <Download size={18} color={we.red} />
                     </Pressable>
                   </View>
                 ))
@@ -433,11 +595,19 @@ export default function EventDetailScreen() {
           {tab === "memory" && (
             <View className="gap-6">
               <View className="gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                {replyTo && (
+                  <View className="flex-row items-center justify-between rounded-lg bg-white px-3 py-1.5">
+                    <Text className="text-xs text-gray-500">Replying to {replyTo.name}</Text>
+                    <Pressable onPress={() => setReplyTo(null)}>
+                      <X size={14} color="#9ca3af" />
+                    </Pressable>
+                  </View>
+                )}
                 <View className="flex-row items-center gap-2">
                   <TextInput
                     value={memoryText}
                     onChangeText={setMemoryText}
-                    placeholder="Share your experience..."
+                    placeholder={replyTo ? "Write a reply..." : "Share your experience..."}
                     placeholderTextColor="#9ca3af"
                     className="flex-1 px-2 text-sm text-we-ink"
                   />
@@ -467,33 +637,13 @@ export default function EventDetailScreen() {
               </View>
 
               <View className="gap-4">
-                {memories.length === 0 ? (
+                {topLevelMemories.length === 0 ? (
                   <Text className="py-8 text-center text-gray-400">Be the first to share a memory!</Text>
                 ) : (
-                  memories.map((m) => (
-                    <View
-                      key={m.id}
-                      className="flex-row gap-3 rounded-2xl border border-gray-100 bg-white p-4"
-                    >
-                      <View className="h-10 w-10 items-center justify-center rounded-full bg-gray-200">
-                        <Text className="font-bold text-gray-500">
-                          {(m.authorName ?? "?")[0]?.toUpperCase()}
-                        </Text>
-                      </View>
-                      <View className="flex-1">
-                        <View className="mb-1 flex-row items-center gap-2">
-                          <Text className="text-sm font-bold text-we-ink">{m.authorName ?? "Student"}</Text>
-                          <Text className="text-xs text-gray-400">{localeDate(m.createdAt)}</Text>
-                        </View>
-                        <Text className="mb-2 text-sm leading-relaxed text-gray-600">{m.body}</Text>
-                        {m.images?.[0] && (
-                          <Image
-                            source={{ uri: m.images[0] }}
-                            contentFit="cover"
-                            style={{ width: "100%", height: 180, borderRadius: 12 }}
-                          />
-                        )}
-                      </View>
+                  topLevelMemories.map((m) => (
+                    <View key={m.id} className="gap-2">
+                      {renderMemory(m)}
+                      {(repliesByParent[m.id] ?? []).map((r) => renderMemory(r, true))}
                     </View>
                   ))
                 )}
@@ -527,6 +677,73 @@ export default function EventDetailScreen() {
           )}
           <Button onPress={submitApplicationForm} block size="lg">
             Submit Application
+          </Button>
+        </View>
+      </BottomSheet>
+
+      {/* Feedback sheet */}
+      <BottomSheet open={fbOpen} onClose={() => setFbOpen(false)} title="Event feedback" scrollable>
+        <View className="gap-5 pt-1">
+          <View>
+            <Text className="mb-2 text-sm font-semibold text-we-ink">
+              How likely are you to recommend this event?
+            </Text>
+            <View className="flex-row gap-2">
+              {[1, 2, 3, 4, 5].map((v) => (
+                <Pressable
+                  key={v}
+                  onPress={() => setRec(v)}
+                  className={cn(
+                    "h-11 flex-1 items-center justify-center rounded-xl border",
+                    rec >= v ? "border-we-red bg-red-50" : "border-gray-200 bg-white"
+                  )}
+                >
+                  <Star
+                    size={20}
+                    color={rec >= v ? we.red : "#9ca3af"}
+                    fill={rec >= v ? we.red : "transparent"}
+                  />
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View>
+            <Text className="mb-2 text-sm font-semibold text-we-ink">
+              NPS — would you recommend Würth as an employer? (optional)
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5">
+              {Array.from({ length: 11 }).map((_, v) => (
+                <Pressable
+                  key={v}
+                  onPress={() => setNps(nps === v ? null : v)}
+                  className={cn(
+                    "h-9 w-9 items-center justify-center rounded-lg border",
+                    nps === v ? "border-we-red bg-we-red" : "border-gray-200 bg-white"
+                  )}
+                >
+                  <Text className={cn("text-xs font-bold", nps === v ? "text-white" : "text-gray-600")}>
+                    {v}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View>
+            <Text className="mb-1.5 text-sm font-semibold text-we-ink">Anything to add? (optional)</Text>
+            <TextInput
+              value={fbText}
+              onChangeText={setFbText}
+              placeholder="Your thoughts…"
+              placeholderTextColor="#9ca3af"
+              multiline
+              className="min-h-[64px] rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-we-ink"
+            />
+          </View>
+
+          <Button onPress={onSubmitFeedback} block size="lg">
+            Submit feedback
           </Button>
         </View>
       </BottomSheet>

@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getChatMessages, getInternalChats, getStudentConversations } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import {
+  connectChatSocket,
+  disconnectChatSocket,
+  messageFromEvent,
+  sendChatMessage,
+  subscribe,
+} from "@/lib/ws";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -117,11 +124,70 @@ export default function CommunicationPage() {
 }
 
 function ChatThreadView({ chatId, title }: { chatId: string | null; title: string }) {
-  const { data, loading } = useAsync(
-    () => (chatId ? getChatMessages(chatId) : Promise.resolve([] as ChatMessage[])),
-    [chatId]
-  );
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load the thread history whenever the active chat changes.
+  useEffect(() => {
+    if (!chatId) {
+      setMessages([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    getChatMessages(chatId).then((msgs) => {
+      if (!cancelled) {
+        setMessages(msgs);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId]);
+
+  // Live delivery: connect the socket and append incoming messages for this chat.
+  useEffect(() => {
+    if (!chatId) return;
+    connectChatSocket();
+    const unsubscribe = subscribe((event) => {
+      const incoming = messageFromEvent(event);
+      if (!incoming || incoming.chatId !== chatId) return;
+      setMessages((prev) =>
+        prev.some((m) => m.id === incoming.message.id) ? prev : [...prev, incoming.message]
+      );
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [chatId]);
+
+  // Disconnect when the Hub unmounts.
+  useEffect(() => () => disconnectChatSocket(), []);
+
+  // Keep the thread pinned to the latest message.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
+  function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    const body = draft.trim();
+    if (!body || !chatId) return;
+    // Optimistically render my own message, then push it over the socket.
+    const mine: ChatMessage = {
+      id: `local-${Date.now()}`,
+      mine: true,
+      sender: { display_name: "You" },
+      body,
+      sent_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, mine]);
+    sendChatMessage(chatId, body);
+    setDraft("");
+  }
 
   if (!chatId) {
     return (
@@ -140,10 +206,13 @@ function ChatThreadView({ chatId, title }: { chatId: string | null; title: strin
       <div className="border-b border-we-line px-5 py-3">
         <h3 className="text-sm font-semibold text-we-ink">{title}</h3>
       </div>
-      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
         {loading && <Skeleton className="h-40 w-full" />}
+        {!loading && messages.length === 0 && (
+          <p className="py-8 text-center text-xs text-we-muted">No messages yet — say hello.</p>
+        )}
         {!loading &&
-          data?.map((m) => (
+          messages.map((m) => (
             <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
@@ -160,14 +229,7 @@ function ChatThreadView({ chatId, title }: { chatId: string | null; title: strin
           ))}
       </div>
       <div className="border-t border-we-line p-3">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setDraft("");
-            // TODO: send via WS `send_message` (Master §7); REST fallback exists.
-          }}
-          className="flex gap-2"
-        >
+        <form onSubmit={handleSend} className="flex gap-2">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

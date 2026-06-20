@@ -1,0 +1,85 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# WEave — full production stack for a single Hetzner box.
+#
+#   db        Postgres 16 (persistent volume)
+#   api       FastAPI backend (uvicorn)            → internal :8000
+#   dashboard Next.js (standalone)                 → internal :3000
+#   caddy     reverse proxy + automatic HTTPS      → public :80/:443
+#
+# Caddy terminates TLS for two subdomains:
+#   ${DOMAIN_APP}  → dashboard
+#   ${DOMAIN_API}  → api  (REST under /internal, /api; WebSocket at /ws/chat)
+#
+# Copy .env.example → .env, set your domains + secrets, then:
+#   docker compose -f deploy/docker-compose.yml up -d --build
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-weave}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weave}
+      POSTGRES_DB: ${POSTGRES_DB:-weave}
+    volumes:
+      - weave_pgdata:/var/lib/postgresql/data
+      - ../Backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-weave} -d ${POSTGRES_DB:-weave}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../Backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-weave}:${POSTGRES_PASSWORD:-weave}@db:5432/${POSTGRES_DB:-weave}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      CORS_ORIGINS: https://${DOMAIN_APP}
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    expose:
+      - "8000"
+
+  dashboard:
+    build:
+      context: ../Dashboard_App
+      args:
+        # NEXT_PUBLIC_* are baked at build time → must be passed as build args.
+        NEXT_PUBLIC_USE_MOCKS: ${NEXT_PUBLIC_USE_MOCKS:-true}
+        NEXT_PUBLIC_API_BASE_URL: https://${DOMAIN_API}
+        NEXT_PUBLIC_WS_URL: wss://${DOMAIN_API}/ws/chat
+    restart: unless-stopped
+    environment:
+      # Server-side only (used by the /api/assistant route).
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+      - dashboard
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN_APP: ${DOMAIN_APP}
+      DOMAIN_API: ${DOMAIN_API}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  weave_pgdata:
+  caddy_data:
+  caddy_config:

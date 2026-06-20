@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Award, Bell, Calendar, LogIn, LogOut, Mail, Settings } from "lucide-react-native";
+import { Award, Bell, Calendar, Eye, LogIn, LogOut, Mail, Settings } from "lucide-react-native";
 import type { InterestTagGroup, Memory, StudentProfile } from "@/lib/types";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -29,6 +29,7 @@ export default function ProfileScreen() {
   const [hometown, setHometown] = useState("");
   const [notifications, setNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
+  const [consent, setConsent] = useState(false);
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
 
@@ -42,6 +43,7 @@ export default function ProfileScreen() {
         setUniversity(p.university ?? "");
         setStudyDegree(p.studyDegree ?? "");
         setHometown(p.hometown ?? "");
+        setConsent(p.consentVisibleToRecruiters ?? false);
       })
       .catch(() => {});
     api.getInterestTags().then(setTagGroups).catch(() => {});
@@ -72,6 +74,18 @@ export default function ProfileScreen() {
       toast("Settings saved successfully.");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not save.", "error");
+    }
+  }
+
+  async function toggleConsent(next: boolean) {
+    setConsent(next);
+    try {
+      const updated = await api.updateProfile({ consentVisibleToRecruiters: next });
+      setProfile(updated);
+      toast(next ? "Visible to recruiters ✓" : "Hidden from recruiters");
+    } catch (e) {
+      setConsent(!next); // revert
+      toast(e instanceof Error ? e.message : "Could not update.", "error");
     }
   }
 
@@ -311,6 +325,18 @@ export default function ProfileScreen() {
                 onValueChange={setEmailUpdates}
               />
             </View>
+          </View>
+
+          {/* Privacy */}
+          <View>
+            <Text className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-400">Privacy</Text>
+            <ToggleRow
+              icon={<Eye size={20} color={we.red} />}
+              title="Visible to recruiters"
+              subtitle="Let Würth see your profile & public memories"
+              value={consent}
+              onValueChange={toggleConsent}
+            />
           </View>
 
           {/* Security */}

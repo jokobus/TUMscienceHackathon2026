@@ -9,6 +9,11 @@
 import type { Message, WsEvent } from "@/lib/types";
 import { API_BASE_URL, USE_BACKEND, getToken } from "@/lib/http";
 
+/** Full chat WebSocket URL (without the token query), env-configurable.
+ * EXPO_PUBLIC_WS_URL overrides; otherwise derived from EXPO_PUBLIC_API_BASE_URL. */
+export const WS_URL =
+  process.env.EXPO_PUBLIC_WS_URL ?? `${API_BASE_URL.replace(/^http/, "ws")}/ws/chat`;
+
 type Listener = (event: WsEvent) => void;
 
 const listeners = new Set<Listener>();
@@ -30,10 +35,7 @@ let socket: WebSocket | null = null;
 export async function connectChatSocket(): Promise<void> {
   if (!USE_BACKEND || socket) return;
   const token = await getToken();
-  const wsUrl =
-    API_BASE_URL.replace(/^http/, "ws") +
-    "/ws/chat" +
-    (token ? `?token=${encodeURIComponent(token)}` : "");
+  const wsUrl = WS_URL + (token ? `?token=${encodeURIComponent(token)}` : "");
   const sock = new WebSocket(wsUrl);
   socket = sock;
   sock.onopen = () => {

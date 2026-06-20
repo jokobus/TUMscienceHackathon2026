@@ -1,0 +1,14 @@
+# WEave reverse proxy — automatic HTTPS via Let's Encrypt.
+# {$DOMAIN_APP} and {$DOMAIN_API} are read from the environment (see docker-compose.yml).
+
+# Dashboard (Next.js)
+{$DOMAIN_APP} {
+	encode gzip zstd
+	reverse_proxy dashboard:3000
+}
+
+# Backend API + WebSocket (FastAPI). Caddy proxies WebSocket upgrades transparently.
+{$DOMAIN_API} {
+	encode gzip zstd
+	reverse_proxy api:8000
+}

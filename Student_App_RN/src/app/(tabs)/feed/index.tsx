@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Platform, RefreshControl, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,7 +9,6 @@ import { EventCard } from "@/components/student/EventCard";
 import { FeedFilters } from "@/components/student/FeedFilters";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import { typeLabel } from "@/lib/utils";
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -17,6 +16,9 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  // AI search results (GET /api/events/search); null = no active search.
+  const [searchResults, setSearchResults] = useState<WeaveEvent[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -33,25 +35,45 @@ export default function FeedScreen() {
     }, [events, load])
   );
 
+  // Debounced AI-assisted search via the backend (semantic, future + past).
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchResults(null);
+      setSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(() => {
+      api
+        .searchEvents(q)
+        .then((r) => {
+          if (!cancelled) setSearchResults(r);
+        })
+        .catch(() => {
+          if (!cancelled) setSearchResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [searchQuery]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
   }, [load]);
 
+  const isSearch = searchQuery.trim().length > 0;
+
   const sortedEvents = useMemo(() => {
-    let list = [...(events ?? [])];
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (e) =>
-          e.title.toLowerCase().includes(q) ||
-          (e.description ?? "").toLowerCase().includes(q) ||
-          (e.city ?? "").toLowerCase().includes(q) ||
-          (e.location ?? "").toLowerCase().includes(q) ||
-          typeLabel(e.type).toLowerCase().includes(q)
-      );
-    }
+    let list = [...(isSearch ? searchResults ?? [] : events ?? [])];
     if (activeFilter) {
       const now = Date.now();
       switch (activeFilter) {
@@ -86,13 +108,13 @@ export default function FeedScreen() {
       }
     }
     return list.sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
-  }, [events, searchQuery, activeFilter]);
+  }, [events, searchResults, isSearch, activeFilter]);
 
   const header = (
     <View>
       <Text className="mb-6 text-3xl font-bold text-we-ink">Discover Events</Text>
 
-      {/* Search Bar */}
+      {/* AI-assisted Search Bar (GET /api/events/search) */}
       <View className="relative mb-4">
         <View className="absolute left-4 top-0 z-10 h-12 justify-center">
           <Search size={20} color="#9ca3af" />
@@ -108,15 +130,19 @@ export default function FeedScreen() {
 
       <FeedFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
-      {sortedEvents.length > 0 && (
+      {searching ? (
+        <Text className="mb-1 mt-1 text-sm text-gray-400">Searching…</Text>
+      ) : sortedEvents.length > 0 ? (
         <Text className="mb-1 mt-1 text-sm text-gray-400">
           {sortedEvents.length} event{sortedEvents.length !== 1 ? "s" : ""} found
         </Text>
-      )}
+      ) : null}
     </View>
   );
 
-  if (events === null) {
+  const loading = events === null || (isSearch && searchResults === null);
+
+  if (loading) {
     return (
       <View className="flex-1 bg-white px-4" style={{ paddingTop: insets.top + 16 }}>
         {header}
@@ -140,7 +166,7 @@ export default function FeedScreen() {
       ListHeaderComponent={header}
       renderItem={({ item, index }) => (
         <View className="mb-5">
-          <EventCard event={item} featured={index === 0 && !searchQuery && !activeFilter} />
+          <EventCard event={item} featured={index === 0 && !isSearch && !activeFilter} />
         </View>
       )}
       ListEmptyComponent={
