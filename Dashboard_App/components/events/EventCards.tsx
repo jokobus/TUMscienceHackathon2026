@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getEvents } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -100,8 +100,29 @@ function EventTimeline({ events }: { events: EventSummary[] }) {
     [events],
   );
   const [activeId, setActiveId] = useState(sorted[0]?.id);
-  const window = useMemo(() => computeWindow(sorted), [sorted]);
   const active = sorted.find((ev) => ev.id === activeId) ?? sorted[0];
+  const activeIndex = Math.max(0, sorted.findIndex((ev) => ev.id === active?.id));
+
+  // Measure the available width so the road can wrap responsively without
+  // overflowing — events are spaced evenly along the path (not by time), which
+  // is what stops temporally-close events from collapsing onto one another.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      if (w) setWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const road = useMemo(() => buildRoadmap(sorted, width), [sorted, width]);
+  const points = useMemo(() => road.stops.map((s) => ({ x: s.x, y: s.y })), [road]);
+  const fullPath = useMemo(() => roundedPath(points, 28), [points]);
+  const progressPath = useMemo(() => roundedPath(points.slice(0, activeIndex + 1), 28), [points, activeIndex]);
 
   if (!active) {
     return null;
@@ -109,53 +130,79 @@ function EventTimeline({ events }: { events: EventSummary[] }) {
 
   return (
     <Card className="overflow-hidden">
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.45fr)_360px]">
+      <div className="grid items-start gap-0 lg:grid-cols-[minmax(0,1.55fr)_360px]">
         <div className="border-b border-we-line p-6 lg:border-b-0 lg:border-r lg:border-we-line">
-          <div className="mb-8 flex items-end justify-between gap-6">
+          <div className="mb-6 flex items-end justify-between gap-6">
             <div>
               <div className="eyebrow mb-2">Timeline</div>
-              <h3 className="text-xl font-bold tracking-normal text-we-ink">Event sequence</h3>
+              <h3 className="text-xl font-bold tracking-normal text-we-ink">Event roadmap</h3>
             </div>
-            <span className="hidden text-sm text-we-muted sm:block">Hover a marker to reveal the event.</span>
+            <span className="hidden text-sm text-we-muted sm:block">Follow the road · hover a stop to preview.</span>
           </div>
 
-          <div className="overflow-x-auto pb-7 pt-6">
-            <div className="relative h-32 min-w-[760px]">
-              <div className="absolute left-0 right-0 top-12 h-px bg-we-line-strong" />
-              {sorted.map((ev, index) => {
-                const left = posPct(ev.start_at, window);
-                const activeMarker = ev.id === active.id;
-                const labelBelow = index % 2 === 1;
+          <div ref={wrapRef} className="relative w-full">
+            {width === 0 ? (
+              <div className="h-44 w-full animate-pulse rounded-card bg-we-canvas" />
+            ) : (
+              <>
+                <svg
+                  width={road.W}
+                  height={road.H}
+                  viewBox={`0 0 ${road.W} ${road.H}`}
+                  className="block"
+                  aria-hidden
+                >
+                  {/* asphalt */}
+                  <path d={fullPath} fill="none" stroke="#E4E7EC" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" />
+                  {/* lane markings */}
+                  <path d={fullPath} fill="none" stroke="#FFFFFF" strokeWidth={2.5} strokeLinecap="round" strokeDasharray="1 16" />
+                  {/* progress travelled so far */}
+                  <path d={progressPath} fill="none" stroke="#CC0000" strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
 
-                return (
-                  <Link
-                    key={ev.id}
-                    href={`/events/${ev.id}`}
-                    onMouseEnter={() => setActiveId(ev.id)}
-                    onFocus={() => setActiveId(ev.id)}
-                    className="group absolute top-12 flex -translate-x-1/2 flex-col items-center outline-none"
-                    style={{ left: `${left}%` }}
-                    aria-label={`Open ${ev.title}`}
-                  >
-                    <span
-                      className={`relative z-10 h-4 w-4 rounded-full border-2 bg-white transition-all duration-200 ${
-                        activeMarker
-                          ? "scale-125 border-we-red shadow-[0_0_0_6px_rgba(204,0,0,0.08)]"
-                          : "border-we-line-strong group-hover:scale-110 group-hover:border-we-red"
-                      }`}
-                    />
-                    <span className={`absolute ${labelBelow ? "top-7" : "-top-10"} w-32 text-center`}>
-                      <span className="block truncate text-[12px] font-semibold text-we-ink">{ev.city ?? ev.location}</span>
-                      <span className="tnum block text-[11px] text-we-muted">{fmtDate(ev.start_at)}</span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
+                {road.stops.map((s) => {
+                  const isActive = s.ev.id === active.id;
+                  const done = s.index <= activeIndex;
+                  return (
+                    <Link
+                      key={s.ev.id}
+                      href={`/events/${s.ev.id}`}
+                      onMouseEnter={() => setActiveId(s.ev.id)}
+                      onFocus={() => setActiveId(s.ev.id)}
+                      className="group absolute z-10 flex w-[104px] cursor-pointer flex-col items-center rounded-tag pb-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-we-red focus-visible:ring-offset-1"
+                      style={{ left: s.x, top: s.y, transform: "translate(-50%, -14px)" }}
+                      aria-label={`Open ${s.ev.title}`}
+                    >
+                      <span
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border-2 text-[11px] font-bold tnum transition-all duration-200 ${
+                          isActive
+                            ? "scale-110 border-we-red bg-we-red text-white shadow-[0_0_0_5px_rgba(204,0,0,0.10)]"
+                            : done
+                              ? "border-we-red bg-white text-we-red group-hover:scale-110"
+                              : "border-we-line-strong bg-white text-we-muted group-hover:scale-110 group-hover:border-we-red group-hover:text-we-red"
+                        }`}
+                      >
+                        {s.index + 1}
+                      </span>
+                      <span className="mt-1 block w-full rounded bg-we-surface/90 px-1 backdrop-blur-sm">
+                        <span
+                          className={`block truncate text-[11px] font-semibold leading-tight ${
+                            isActive ? "text-we-red" : "text-we-ink group-hover:text-we-red"
+                          }`}
+                        >
+                          {s.ev.city ?? s.ev.location}
+                        </span>
+                        <span className="tnum block text-[10px] leading-tight text-we-muted">{fmtDate(s.ev.start_at)}</span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
           </div>
         </div>
 
-        <div className="bg-we-canvas p-5">
+        <div className="self-start bg-we-canvas p-5">
           <TimelinePreview ev={active} />
         </div>
       </div>
@@ -316,19 +363,86 @@ function ArrowIcon({ className }: { className?: string }) {
   );
 }
 
-interface DateWindow {
-  min: number;
-  max: number;
+interface RoadStop {
+  ev: EventSummary;
+  x: number;
+  y: number;
+  index: number;
 }
 
-function computeWindow(events: EventSummary[]): DateWindow {
-  const times = events.map((ev) => new Date(ev.start_at).getTime());
-  const min = Math.min(...times);
-  const max = Math.max(...times);
-  const pad = Math.max((max - min) * 0.08, 864e5);
-  return { min: min - pad, max: max + pad };
+interface Roadmap {
+  W: number;
+  H: number;
+  stops: RoadStop[];
 }
 
-function posPct(date: string, window: DateWindow): number {
-  return ((new Date(date).getTime() - window.min) / (window.max - window.min)) * 100;
+// Lay events out evenly along a serpentine path: each row flows in the opposite
+// direction to the one above, with a U-turn drop at the end. Spacing is uniform
+// regardless of the time gap between events, so close-together dates never stack.
+function buildRoadmap(events: EventSummary[], containerW: number): Roadmap {
+  const W = Math.max(Math.round(containerW), 320);
+  const padX = 56;
+  const padTop = 34;
+  const rowGap = 84;
+  const padBottom = 52;
+  const n = events.length;
+  if (n === 0) return { W, H: padTop + padBottom, stops: [] };
+
+  // Pack as many stops per row as fit (each needs ~118px), so a large event
+  // list wraps into far fewer rows and the roadmap stays compact.
+  let cols = Math.floor((W - padX * 2) / 118);
+  cols = Math.max(3, Math.min(cols, 7));
+  cols = Math.max(1, Math.min(cols, n));
+  const rows = Math.ceil(n / cols);
+  const colW = cols > 1 ? (W - padX * 2) / (cols - 1) : 0;
+
+  const stops = events.map((ev, i) => {
+    const row = Math.floor(i / cols);
+    const inRow = i % cols;
+    // reverse direction on odd rows so the road snakes back the other way
+    const col = row % 2 === 0 ? inRow : cols - 1 - inRow;
+    const x = cols > 1 ? padX + col * colW : W / 2;
+    const y = padTop + row * rowGap;
+    return { ev, x, y, index: i };
+  });
+
+  const H = padTop + (rows - 1) * rowGap + padBottom;
+  return { W, H, stops };
+}
+
+interface Pt {
+  x: number;
+  y: number;
+}
+
+// Polyline through the given points with rounded corners — turns the right-angle
+// row transitions into smooth road bends.
+function roundedPath(points: Pt[], radius: number): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${round(points[0].x)} ${round(points[0].y)}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const p0 = points[i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const a = lerpToward(p1, p0, Math.min(radius, dist(p0, p1) / 2));
+    const b = lerpToward(p1, p2, Math.min(radius, dist(p1, p2) / 2));
+    d += ` L ${round(a.x)} ${round(a.y)} Q ${round(p1.x)} ${round(p1.y)} ${round(b.x)} ${round(b.y)}`;
+  }
+  const last = points[points.length - 1];
+  d += ` L ${round(last.x)} ${round(last.y)}`;
+  return d;
+}
+
+function dist(a: Pt, b: Pt): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function lerpToward(from: Pt, to: Pt, d: number): Pt {
+  const len = dist(from, to) || 1;
+  return { x: from.x + ((to.x - from.x) / len) * d, y: from.y + ((to.y - from.y) / len) * d };
+}
+
+function round(v: number): number {
+  return Math.round(v * 10) / 10;
 }
