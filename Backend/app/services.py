@@ -62,6 +62,7 @@ def build_event_summary(db: Session, event: Event, viewer_id: str | None, kpis: 
         "is_owner": is_owner,
         "relationship_roi": kpis.get("qualified_leads", 0),
         "image_url": event.images[0] if event.images else None,
+        "images": event.images or [],
     }
 
 
@@ -78,6 +79,7 @@ def build_event_detail(db: Session, event: Event, viewer_id: str | None) -> dict
             "engagement_index": kpis["engagement_index"],
             "summary": _analysis_text(event, kpis, returning),
         }
+    owner_name = user_display(db, event.owner_employee_id)
     return {
         **summary,
         "description": event.description or "",
@@ -85,6 +87,9 @@ def build_event_detail(db: Session, event: Event, viewer_id: str | None) -> dict
         "goal": event.goal,
         "partner_university": event.partner_university,
         "owner_employee_id": event.owner_employee_id,
+        "owner_name": owner_name,
+        "cost": float(event.cost) if event.cost is not None else None,
+        "human_capital": event.human_capital,
         "responsible_employee_ids": responsible_ids(db, event.id),
         "live_analytics_enabled": event.live_analytics_enabled,
         "kpis": kpis,
@@ -124,6 +129,12 @@ def build_attendees(db: Session, event_id: str) -> list[dict]:
         if not u:
             continue
         prof = db.get(StudentProfile, r.user_id)
+        # "returning" = this attendee interacted with some other event too.
+        returning = db.scalar(
+            select(Interaction.id)
+            .where(Interaction.user_id == r.user_id, Interaction.event_id != event_id)
+            .limit(1)
+        ) is not None
         out.append(
             {
                 "user_id": u.id,
@@ -133,6 +144,7 @@ def build_attendees(db: Session, event_id: str) -> list[dict]:
                 "study_degree": prof.study_degree if prof else None,
                 "checked_in_at": r.checked_in_at,
                 "full_session": r.checked_out_at is not None,
+                "returning": returning,
                 "lead_status": lead_status(by_user.get(r.user_id, [])),
             }
         )
@@ -194,11 +206,33 @@ def build_chat_summary(db: Session, chat: Chat, viewer_id: str) -> dict:
     for m in db.scalars(select(Message).where(Message.chat_id == chat.id)):
         if m.sender_user_id != viewer_id and (not m.read_by or viewer_id not in m.read_by):
             unread += 1
+    # For 1:1 conversations the stored title is the name captured at creation, so
+    # each participant would otherwise see a fixed name — typically the chat is
+    # titled after whoever the *creator's* counterpart was, which means the other
+    # participant sees the wrong name (often their own). Resolve the title/avatar
+    # from the *other* participant, relative to the viewer. Group / event channels
+    # keep their stored title (the event name).
+    title = chat.title or "Conversation"
+    avatar_url = None
+    if chat.type in ("dm", "internal", "student_conversation"):
+        others = [
+            uid
+            for uid in db.scalars(
+                select(ChatParticipant.user_id).where(ChatParticipant.chat_id == chat.id)
+            )
+            if uid != viewer_id
+        ]
+        if len(others) == 1:
+            other = db.get(User, others[0])
+            if other:
+                title = other.display_name
+                avatar_url = other.avatar_url
     return {
         "id": chat.id,
         "type": chat.type,
-        "title": chat.title or "Conversation",
+        "title": title,
         "subtitle": chat.subtitle,
+        "avatar_url": avatar_url,
         "event_id": chat.event_id,
         "last_message": last.body if last else None,
         "last_message_at": last.sent_at if last else None,

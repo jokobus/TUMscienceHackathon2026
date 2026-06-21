@@ -137,12 +137,22 @@ function ChatThreadView({ chatId, title }: { chatId: string | null; title: strin
     }
     let cancelled = false;
     setLoading(true);
-    getChatMessages(chatId).then((msgs) => {
-      if (!cancelled) {
-        setMessages(msgs);
-        setLoading(false);
-      }
-    });
+    getChatMessages(chatId)
+      .then((msgs) => {
+        if (!cancelled) {
+          setMessages(msgs);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // A failed history fetch must clear loading (otherwise the thread hangs on a
+        // permanent skeleton) and not leave an unhandled rejection. Live WS delivery
+        // still works, so start from an empty thread.
+        if (!cancelled) {
+          setMessages([]);
+          setLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -155,9 +165,24 @@ function ChatThreadView({ chatId, title }: { chatId: string | null; title: strin
     const unsubscribe = subscribe((event) => {
       const incoming = messageFromEvent(event);
       if (!incoming || incoming.chatId !== chatId) return;
-      setMessages((prev) =>
-        prev.some((m) => m.id === incoming.message.id) ? prev : [...prev, incoming.message]
-      );
+      const msg = incoming.message;
+      setMessages((prev) => {
+        // 1) Reconcile our own optimistic message: swap its temp id for the server
+        //    messageId and clear `pending` (in place — never appended a second time).
+        if (msg.client_msg_id) {
+          const idx = prev.findIndex(
+            (m) => m.pending && m.client_msg_id === msg.client_msg_id
+          );
+          if (idx !== -1) {
+            const next = [...prev];
+            next[idx] = { ...msg, mine: true, pending: false };
+            return next;
+          }
+        }
+        // 2) Otherwise dedup strictly by server messageId; append only if absent.
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     });
     return () => {
       unsubscribe();
@@ -176,16 +201,20 @@ function ChatThreadView({ chatId, title }: { chatId: string | null; title: strin
     e.preventDefault();
     const body = draft.trim();
     if (!body || !chatId) return;
-    // Optimistically render my own message, then push it over the socket.
+    // Push over the socket first to obtain the clientMsgId, then optimistically
+    // render my own message keyed by it. When the server echoes the frame back the
+    // matching clientMsgId reconciles this entry in place (no duplicate, no flash).
+    const clientMsgId = sendChatMessage(chatId, body);
     const mine: ChatMessage = {
-      id: `local-${Date.now()}`,
+      id: clientMsgId,
       mine: true,
       sender: { display_name: "You" },
       body,
       sent_at: new Date().toISOString(),
+      client_msg_id: clientMsgId,
+      pending: true,
     };
     setMessages((prev) => [...prev, mine]);
-    sendChatMessage(chatId, body);
     setDraft("");
   }
 
@@ -222,7 +251,7 @@ function ChatThreadView({ chatId, title }: { chatId: string | null; title: strin
                 {!m.mine && <div className="mb-0.5 text-[11px] font-medium opacity-70">{m.sender.display_name}</div>}
                 {m.body}
                 <div className={`mt-1 text-[10px] ${m.mine ? "text-white/70" : "text-we-muted"}`}>
-                  {relativeTime(m.sent_at)}
+                  {m.pending ? "Sending…" : relativeTime(m.sent_at)}
                 </div>
               </div>
             </div>

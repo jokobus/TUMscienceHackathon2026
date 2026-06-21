@@ -15,10 +15,13 @@ export function NotificationsBell() {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
-    api.getNotifications().then((n) => {
-      setItems(n);
-      setUnread(n.filter((x) => !x.readAt).length);
-    });
+    api
+      .getNotifications()
+      .then((n) => {
+        setItems(n);
+        setUnread(n.filter((x) => !x.readAt).length);
+      })
+      .catch(() => {});
   }, []);
 
   async function markAll() {

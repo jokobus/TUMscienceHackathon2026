@@ -4,20 +4,9 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { ScanLine, TestTube, X } from "lucide-react-native";
-import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-
-/** Parse a Würth QR payload into an action. */
-function parseScan(data: string): { kind: "event" | "employee"; id: string } | null {
-  const evt = data.match(/\/e\/([^/]+)\/check/i) || data.match(/event[/:]([^/]+)/i);
-  if (evt) return { kind: "event", id: evt[1] };
-  const emp = data.match(/emp(?:loyee)?[/:]([^/]+)/i);
-  if (emp) return { kind: "employee", id: emp[1] };
-  if (/^evt-/.test(data)) return { kind: "event", id: data };
-  if (/^emp-/.test(data)) return { kind: "employee", id: data };
-  return null;
-}
+import { parseScan, performScan, setPendingScan, type ParsedScan } from "@/lib/scan";
 
 export default function CameraScreen() {
   const insets = useSafeAreaInsets();
@@ -28,30 +17,17 @@ export default function CameraScreen() {
 
   const [busy, setBusy] = useState(false);
 
-  function ensureAuth(): boolean {
+  async function handleResult(parsed: ParsedScan) {
     if (!user) {
+      // Stash the pending scan so it completes after the user signs in.
+      setPendingScan(parsed);
       toast("Sign in to scan.", "info");
       router.replace("/login");
-      return false;
+      return;
     }
-    return true;
-  }
-
-  async function handleResult(parsed: { kind: "event" | "employee"; id: string }) {
-    if (!ensureAuth()) return;
     setBusy(true);
-    try {
-      if (parsed.kind === "event") {
-        await api.checkInEvent(parsed.id);
-        toast(`Checked in ✓`);
-        router.replace(`/(tabs)/feed/${parsed.id}` as any);
-      } else {
-        const res = await api.scanEmployee(parsed.id);
-        toast(`Connected with ${res.employeeName} ✓`);
-        router.replace(`/(tabs)/chat/${res.chatId}` as any);
-      }
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Scan failed.", "error");
+    const ok = await performScan(parsed, toast);
+    if (!ok) {
       handled.current = false;
       setBusy(false);
     }

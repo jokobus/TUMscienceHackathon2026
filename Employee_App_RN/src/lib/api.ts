@@ -7,6 +7,8 @@
  * Return shapes are identical in both modes.
  */
 import type {
+  Application,
+  ApplicationStatus,
   Attendee,
   AuthResponse,
   ChatSummary,
@@ -56,6 +58,7 @@ const store = {
   chats: clone(seed.chats),
   messages: clone(seed.messagesByChat),
   notifications: clone(seed.notifications),
+  applications: clone(seed.applicationsByEvent),
 };
 
 const delay = (min = 150, max = 380) =>
@@ -327,8 +330,13 @@ export async function scanStudent(
 
 // ── Broadcast ───────────────────────────────────────────────────────────────
 /** POST /internal/events/{eventId}/broadcast → fans out over WS. */
-export async function broadcast(eventId: string, body: string): Promise<Message> {
-  if (USE_BACKEND) return request("POST", `/internal/events/${eventId}/broadcast`, { body });
+export async function broadcast(
+  eventId: string,
+  body: string,
+  clientMsgId?: string
+): Promise<Message> {
+  if (USE_BACKEND)
+    return request("POST", `/internal/events/${eventId}/broadcast`, { body, clientMsgId });
   await delay(150, 300);
   const channel = store.chats.find((c) => c.eventId === eventId && c.type === "event_channel");
   const employee = store.employees.find((e) => e.id === (currentEmployeeId() ?? "emp-1"));
@@ -340,6 +348,7 @@ export async function broadcast(eventId: string, body: string): Promise<Message>
     body,
     sentAt: nowIso(),
     isBroadcast: true,
+    clientMsgId,
   };
   if (channel) {
     store.messages[channel.id] = [...(store.messages[channel.id] ?? []), message];
@@ -348,6 +357,51 @@ export async function broadcast(eventId: string, body: string): Promise<Message>
     publishBroadcast(eventId, channel.id, message);
   }
   return clone(message);
+}
+
+// ── Applications ───────────────────────────────────────────────────────────────
+/** GET /internal/events/{eventId}/applications */
+export async function getApplications(eventId: string): Promise<Application[]> {
+  if (USE_BACKEND) return request("GET", `/internal/events/${eventId}/applications`);
+  await delay();
+  return clone(store.applications[eventId] ?? []).sort(
+    (a, b) => +new Date(b.submittedAt) - +new Date(a.submittedAt)
+  );
+}
+
+/**
+ * PATCH /internal/applications/{applicationId} → {status}.
+ * Accepting auto-registers the applicant and adds them to the event channel,
+ * so they then receive broadcasts.
+ */
+export async function updateApplicationStatus(
+  applicationId: string,
+  status: ApplicationStatus
+): Promise<Application> {
+  if (USE_BACKEND)
+    return request("PATCH", `/internal/applications/${applicationId}`, { status });
+  await delay(120, 260);
+  for (const eventId of Object.keys(store.applications)) {
+    const list = store.applications[eventId];
+    const app = list.find((a) => a.id === applicationId);
+    if (!app) continue;
+    app.status = status;
+    // Mirror the backend: accepting turns the applicant into a real attendee.
+    if (status === "accepted" && app.applicantUserId) {
+      const attendees = store.attendees[eventId] ?? [];
+      if (!attendees.some((at) => at.userId === app.applicantUserId)) {
+        attendees.push({
+          userId: app.applicantUserId,
+          displayName: app.applicantEmail,
+          fullSession: false,
+          leadStatus: "registered",
+        });
+        store.attendees[eventId] = attendees;
+      }
+    }
+    return clone(app);
+  }
+  throw new Error("Application not found.");
 }
 
 // ── Materials ──────────────────────────────────────────────────────────────────
@@ -435,8 +489,13 @@ export async function getMessages(chatId: string): Promise<Message[]> {
   return clone(store.messages[chatId] ?? []);
 }
 
-export async function sendMessage(chatId: string, body: string): Promise<Message> {
-  if (USE_BACKEND) return request("POST", `/internal/chats/${chatId}/messages`, { body });
+export async function sendMessage(
+  chatId: string,
+  body: string,
+  clientMsgId?: string
+): Promise<Message> {
+  if (USE_BACKEND)
+    return request("POST", `/internal/chats/${chatId}/messages`, { body, clientMsgId });
   await delay(90, 200);
   const employee = store.employees.find((e) => e.id === (currentEmployeeId() ?? "emp-1"));
   const message: Message = {
@@ -446,6 +505,7 @@ export async function sendMessage(chatId: string, body: string): Promise<Message
     senderName: employee?.displayName ?? "Me",
     body,
     sentAt: nowIso(),
+    clientMsgId,
   };
   store.messages[chatId] = [...(store.messages[chatId] ?? []), message];
   const chat = store.chats.find((c) => c.id === chatId);

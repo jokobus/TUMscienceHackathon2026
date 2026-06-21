@@ -9,7 +9,7 @@ from app.db import gen_id, get_db
 from app.deps import get_current_user
 from app.errors import conflict, unauthorized
 from app.models import EmployeeProfile, StudentProfile, User
-from app.schemas import AuthResponse, GuestRequest, LoginRequest, SignupRequest
+from app.schemas import AuthResponse, GuestRequest, LoginRequest, SignupRequest, iso_z
 from app.security import create_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -22,7 +22,7 @@ def _user_payload(db: Session, user: User) -> dict:
         "email": user.email,
         "display_name": user.display_name,
         "avatar_url": user.avatar_url,
-        "created_at": user.created_at.isoformat(),
+        "created_at": iso_z(user.created_at),
     }
     if user.role == "employee":
         prof = db.get(EmployeeProfile, user.id)

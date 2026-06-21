@@ -6,6 +6,7 @@
  * spec context is 2026-06-20, so events are dated around it.
  */
 import type {
+  Application,
   Attendee,
   ChatSummary,
   EmployeeProfile,
@@ -285,6 +286,47 @@ export const attendeesByEvent: Record<string, Attendee[]> = {
   ],
   "evt-4": [],
   "evt-6": [],
+};
+
+// ── Per-event applications (participation requests awaiting review) ───────────
+export const applicationsByEvent: Record<string, Application[]> = {
+  "evt-3": [
+    {
+      id: "app-301",
+      eventId: "evt-3",
+      applicantUserId: "stu-5",
+      applicantEmail: "jakob.weber@lmu.de",
+      status: "submitted",
+      submittedAt: "2026-06-15T09:30:00Z",
+      answers: [
+        { questionId: "q-motivation", answerText: "I want to learn embedded systems hands-on and meet the Würth FAE team." },
+        { questionId: "q-experience", answerText: "Built two STM32 projects during my data-science master." },
+      ],
+    },
+    {
+      id: "app-302",
+      eventId: "evt-3",
+      applicantUserId: "stu-3",
+      applicantEmail: "lenni.frank@tu-berlin.de",
+      status: "under_review",
+      submittedAt: "2026-06-16T14:05:00Z",
+      answers: [
+        { questionId: "q-motivation", answerText: "Looking for a working-student role in hardware." },
+      ],
+    },
+  ],
+  "evt-6": [
+    {
+      id: "app-601",
+      eventId: "evt-6",
+      applicantEmail: "anna.koch@tum.de",
+      status: "submitted",
+      submittedAt: "2026-06-18T11:00:00Z",
+      answers: [
+        { questionId: "q-motivation", answerText: "Excited about the excursion to the Würth campus." },
+      ],
+    },
+  ],
 };
 
 // ── Per-event interactions (engagement spine) ────────────────────────────────

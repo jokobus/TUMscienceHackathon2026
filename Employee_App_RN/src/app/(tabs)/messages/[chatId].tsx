@@ -33,24 +33,43 @@ export default function ChatThreadScreen() {
 
   useEffect(() => {
     if (!chatId) return;
-    api.getChat(chatId).then(setChat);
-    api.getMessages(chatId).then(setMessages);
+    api.getChat(chatId).then(setChat).catch(() => setChat(null));
+    api.getMessages(chatId).then(setMessages).catch(() => setMessages([]));
   }, [chatId]);
 
   useEffect(() => {
     return subscribe((e: WsEvent) => {
       if (e.action !== "new_message" && e.action !== "broadcast") return;
       if (e.payload.chatId !== chatId) return;
+      const messageId = String(e.payload.messageId);
+      const clientMsgId =
+        e.payload.clientMsgId != null ? String(e.payload.clientMsgId) : undefined;
       const incoming: Message = {
-        id: String(e.payload.messageId),
+        id: messageId,
         chatId: String(chatId),
-        senderUserId: String(e.payload.from),
+        senderUserId: String(e.payload.senderUserId ?? e.payload.from),
         senderName: String(e.payload.senderName ?? "Someone"),
         body: String(e.payload.message),
         sentAt: String(e.payload.sentAt),
         isBroadcast: Boolean(e.payload.isBroadcast) || e.action === "broadcast",
       };
-      setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
+      setMessages((prev) => {
+        // 1) Confirm our own optimistic message: swap the temp id for the
+        //    server messageId and clear the pending flag, in place.
+        if (clientMsgId) {
+          const pendingIdx = prev.findIndex(
+            (m) => m.pending && m.clientMsgId === clientMsgId
+          );
+          if (pendingIdx !== -1) {
+            const next = prev.slice();
+            next[pendingIdx] = { ...incoming, clientMsgId, pending: false };
+            return next;
+          }
+        }
+        // 2) Otherwise dedup by server messageId and append only if absent.
+        if (prev.some((m) => m.id === messageId)) return prev;
+        return [...prev, incoming];
+      });
     });
   }, [chatId]);
 
@@ -58,10 +77,50 @@ export default function ChatThreadScreen() {
     const body = draft.trim();
     if (!body) return;
     setDraft("");
-    if (broadcastMode && chat?.eventId) {
-      await api.broadcast(chat.eventId, body);
-    } else if (chatId) {
-      await api.sendMessage(chatId, body);
+    const clientMsgId = `c-${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
+    const isBroadcast = broadcastMode && !!chat?.eventId;
+    // Optimistically append so the message shows instantly; the WS echo will
+    // reconcile it (replace-in-place by clientMsgId) so there's no double-paste.
+    const optimistic: Message = {
+      id: clientMsgId,
+      chatId: String(chatId),
+      senderUserId: myId ?? "",
+      senderName: employee?.displayName ?? "Me",
+      body,
+      sentAt: new Date().toISOString(),
+      isBroadcast,
+      clientMsgId,
+      pending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    try {
+      // Reconcile from the REST response too (not just the WS echo). The broadcast
+      // endpoint can't always thread clientMsgId back, and the socket may be down —
+      // so confirming the optimistic bubble here prevents a stuck "Sending…".
+      const saved =
+        isBroadcast && chat?.eventId
+          ? await api.broadcast(chat.eventId, body, clientMsgId)
+          : chatId
+            ? await api.sendMessage(chatId, body, clientMsgId)
+            : undefined;
+      if (saved?.id) {
+        setMessages((prev) => {
+          // WS echo already landed → drop the optimistic row to avoid a duplicate.
+          if (prev.some((m) => !m.pending && m.id === saved.id)) {
+            return prev.filter((m) => m.clientMsgId !== clientMsgId);
+          }
+          // Otherwise swap the pending row in place for the persisted message.
+          const idx = prev.findIndex((m) => m.pending && m.clientMsgId === clientMsgId);
+          if (idx === -1) return prev;
+          const next = prev.slice();
+          next[idx] = { ...optimistic, ...saved, clientMsgId, pending: false };
+          return next;
+        });
+      }
+    } catch {
+      // Roll back the optimistic message if the send failed.
+      setMessages((prev) => prev.filter((m) => m.clientMsgId !== clientMsgId));
+      setDraft(body);
     }
   }
 
@@ -164,7 +223,7 @@ export default function ChatThreadScreen() {
                     mine ? "text-white/70" : "text-wuerth-mute"
                   )}
                 >
-                  {formatTime(m.sentAt)}
+                  {m.pending ? "Sending…" : formatTime(m.sentAt)}
                 </Text>
               </View>
             </View>

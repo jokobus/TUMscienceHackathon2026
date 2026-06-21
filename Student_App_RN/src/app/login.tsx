@@ -12,6 +12,8 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowRight, Lock, Mail, User, X } from "lucide-react-native";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/ui/Toast";
+import { performScan, takePendingScan } from "@/lib/scan";
 import { Button } from "@/components/ui/Button";
 import { WeaveLockup } from "@/components/ui/WuerthLogo";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,7 @@ type Mode = "signin" | "signup" | "guest";
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { login, signup, guest } = useAuth();
+  const { toast } = useToast();
   const [mode, setMode] = useState<Mode>("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,6 +44,12 @@ export default function LoginScreen() {
       if (mode === "signin") await login(email.trim(), password);
       else if (mode === "signup") await signup(email.trim(), password, name.trim() || email.split("@")[0]);
       else await guest(email.trim(), name.trim() || undefined);
+      // If a scan triggered this login, resume it instead of just going back.
+      const pending = takePendingScan();
+      if (pending) {
+        const ok = await performScan(pending, toast);
+        if (ok) return; // performScan navigated to the event / chat
+      }
       done();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

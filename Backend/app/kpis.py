@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.enums import EventHealth, InteractionType
-from app.models import EventRegistration, Feedback, FollowUp, Interaction
+from app.models import Event, EventRegistration, Feedback, FollowUp, Interaction
 from app.scoring import is_qualified_lead
 
 
@@ -53,6 +53,14 @@ def compute_event_kpis(db: Session, event_id: str) -> dict:
         )
     )
 
+    returning_users = returning_user_count(db, event_id)
+    event = db.get(Event, event_id)
+    cost_per_lead = (
+        round(float(event.cost) / qualified_leads, 2)
+        if event and event.cost and qualified_leads
+        else None
+    )
+
     return {
         "registered": registered,
         "checked_in": checked_in,
@@ -64,6 +72,8 @@ def compute_event_kpis(db: Session, event_id: str) -> dict:
         "recommendation_score": recommendation_score,
         "nps_score": nps_score,
         "follow_ups_open": follow_ups_open,
+        "returning_users": returning_users,
+        "cost_per_lead": cost_per_lead,
     }
 
 

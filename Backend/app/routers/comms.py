@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import gen_id, get_db
 from app.deps import require_employee
 from app.errors import not_found
-from app.messaging import post_message
+from app.messaging import mark_chat_read, post_message
 from app.models import Chat, ChatParticipant, Message, User
 from app.schemas import ChatSummaryOut, MessageCreateRequest, MessageOut
 from app.scoring import compute_user_score
@@ -38,10 +38,8 @@ def internal_chat(chat_id: str, db: Session = Depends(get_db), emp: User = Depen
     if not chat:
         raise not_found("Chat not found.")
     # opening a chat marks its messages read for the viewer
-    for m in db.scalars(select(Message).where(Message.chat_id == chat_id)):
-        if m.sender_user_id != emp.id and (not m.read_by or emp.id not in m.read_by):
-            m.read_by = [*(m.read_by or []), emp.id]
-    db.commit()
+    rows = list(db.scalars(select(Message).where(Message.chat_id == chat_id)))
+    mark_chat_read(db, rows, emp.id)
     return build_chat_summary(db, chat, emp.id)
 
 
@@ -51,7 +49,10 @@ def internal_chat_messages(
 ):
     if not db.get(Chat, chat_id):
         raise not_found("Chat not found.")
-    rows = db.scalars(select(Message).where(Message.chat_id == chat_id).order_by(Message.sent_at))
+    rows = list(db.scalars(select(Message).where(Message.chat_id == chat_id).order_by(Message.sent_at)))
+    # The Dashboard opens chats via this endpoint (no single-chat GET), so mark
+    # read here too — otherwise its unread badges never clear.
+    mark_chat_read(db, rows, emp.id)
     return [message_to_dict(db, m) for m in rows]
 
 
@@ -64,7 +65,7 @@ def internal_send_message(
 ):
     if not db.get(Chat, chat_id):
         raise not_found("Chat not found.")
-    return post_message(db, chat_id, emp.id, body.body)
+    return post_message(db, chat_id, emp.id, body.body, client_msg_id=body.client_msg_id)
 
 
 @router.post("/chats", response_model=ChatSummaryOut, status_code=201)

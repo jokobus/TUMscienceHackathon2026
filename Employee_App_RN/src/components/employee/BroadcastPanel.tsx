@@ -29,11 +29,16 @@ export function BroadcastPanel({
   async function send() {
     if (!message.trim()) return;
     setSending(true);
-    await api.broadcast(eventId, message.trim());
-    setSending(false);
-    setMessage("");
-    setSentCount((c) => c + 1);
-    toast(`Broadcast sent to ${attendeeCount} attendees ✓`);
+    try {
+      await api.broadcast(eventId, message.trim());
+      setMessage("");
+      setSentCount((c) => c + 1);
+      toast(`Broadcast sent to ${attendeeCount} attendees ✓`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Broadcast failed", "error");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (

@@ -10,6 +10,23 @@ from app.realtime import manager
 from app.services import message_to_dict
 
 
+def mark_chat_read(db: Session, messages: list[Message], viewer_id: str) -> None:
+    """Mark `messages` read for `viewer_id` (every message they did not send).
+
+    Called whenever a participant opens a chat (i.e. fetches its messages) so the
+    derived unread count in build_chat_summary drops to zero on the next list.
+    Reassigns a fresh list rather than mutating in place so SQLAlchemy detects the
+    change on the plain JSON `read_by` column.
+    """
+    changed = False
+    for m in messages:
+        if m.sender_user_id != viewer_id and (not m.read_by or viewer_id not in m.read_by):
+            m.read_by = [*(m.read_by or []), viewer_id]
+            changed = True
+    if changed:
+        db.commit()
+
+
 def get_or_create_event_channel(db: Session, event_id: str) -> Chat:
     chat = db.scalar(
         select(Chat).where(Chat.event_id == event_id, Chat.type == "event_channel")
@@ -52,7 +69,12 @@ def recipients_for_chat(db: Session, chat: Chat) -> list[str]:
 
 
 def post_message(
-    db: Session, chat_id: str, sender_id: str, body: str, is_broadcast: bool = False
+    db: Session,
+    chat_id: str,
+    sender_id: str,
+    body: str,
+    is_broadcast: bool = False,
+    client_msg_id: str | None = None,
 ) -> dict:
     msg = Message(
         id=gen_id("msg"),
@@ -71,18 +93,25 @@ def post_message(
     recipients = recipients_for_chat(db, chat) if chat else [sender_id]
 
     action = "broadcast" if is_broadcast else "new_message"
+    # The frame is fanned out to EVERY recipient including the sender (so all of the
+    # sender's devices + the dashboard stay in sync). Clients reconcile their own
+    # optimistic message via `clientMsgId` and derive `mine` from `senderUserId`,
+    # so the echo never produces a duplicate.
     frame = {
         "action": action,
         "payload": {
             "chatId": chat_id,
             "from": sender_id,
+            "senderUserId": sender_id,
             "message": body,
             "sentAt": payload["sent_at"].isoformat() if hasattr(payload["sent_at"], "isoformat") else payload["sent_at"],
             "messageId": msg.id,
+            "clientMsgId": client_msg_id,
             "senderName": payload["sender_name"],
             "isBroadcast": is_broadcast,
             **({"eventId": chat.event_id} if chat and chat.event_id else {}),
         },
     }
     manager.notify_threadsafe(recipients, frame)
+    payload["client_msg_id"] = client_msg_id
     return payload

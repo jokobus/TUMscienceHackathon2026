@@ -62,6 +62,8 @@ def _student_row(db: Session, user: User) -> dict:
 def list_students(
     sort: str = Query("priority"),
     university: str | None = Query(None),
+    interest_tag: str | None = Query(None),
+    follow_up_status: str | None = Query(None),
     db: Session = Depends(get_db),
     _: User = Depends(require_employee),
 ):
@@ -69,6 +71,26 @@ def list_students(
     rows = [_student_row(db, u) for u in users]
     if university:
         rows = [r for r in rows if r["university"] == university]
+    if interest_tag:
+        # Match by tag name (case-insensitive) or numeric tag id (§6.14).
+        tag_clause = InterestTag.name.ilike(interest_tag)
+        if interest_tag.isdigit():
+            tag_clause = tag_clause | (InterestTag.id == int(interest_tag))
+        matching_user_ids = set(
+            db.scalars(
+                select(UserInterest.user_id)
+                .join(InterestTag, InterestTag.id == UserInterest.tag_id)
+                .where(tag_clause)
+            )
+        )
+        rows = [r for r in rows if r["user_id"] in matching_user_ids]
+    if follow_up_status:
+        fu_user_ids = set(
+            db.scalars(
+                select(FollowUp.contact_user_id).where(FollowUp.status == follow_up_status)
+            )
+        )
+        rows = [r for r in rows if r["user_id"] in fu_user_ids]
     if sort == "engagement" or sort == "priority":
         rows.sort(key=lambda r: r["engagement_score"], reverse=True)
     elif sort == "recency":

@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db import gen_id
 from app.enums import ENGAGEMENT_WEIGHTS, QUALIFYING_SIGNALS, InteractionType
 from app.models import EngagementScore, Interaction
 
@@ -48,15 +49,25 @@ def compute_user_score(db: Session, user_id: str, event_id: str | None = None) -
 
 
 def recompute_and_cache(db: Session, user_id: str, event_id: str | None = None) -> int:
-    """Recompute a contact's score and upsert the cache (call on new interactions)."""
+    """Recompute a contact's score and upsert the cache (call on new interactions).
+
+    Global scores are stored with `event_id IS NULL` (§5.2); per-event scores
+    with the real event id. Uniqueness of (user, event) is enforced by the
+    table's unique constraint, so we query-then-upsert.
+    """
     score = compute_user_score(db, user_id, event_id)
-    key_event = event_id or ""
-    row = db.get(EngagementScore, {"user_id": user_id, "event_id": key_event})
+    stmt = select(EngagementScore).where(EngagementScore.user_id == user_id)
+    stmt = (
+        stmt.where(EngagementScore.event_id == event_id)
+        if event_id is not None
+        else stmt.where(EngagementScore.event_id.is_(None))
+    )
+    row = db.scalar(stmt)
     if row:
         row.score = score
         row.computed_at = datetime.now(timezone.utc)
     else:
-        db.add(EngagementScore(user_id=user_id, event_id=key_event, score=score))
+        db.add(EngagementScore(id=gen_id("es"), user_id=user_id, event_id=event_id, score=score))
     return score
 
 

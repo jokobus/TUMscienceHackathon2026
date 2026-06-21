@@ -67,9 +67,9 @@ export const MOCK_EVENTS: EventSummary[] = [
   {
     id: "ev-1",
     title: "Embedded Systems Workshop @ TUM",
-    status: "live",
-    type: "workshop",
-    health: "healthy",
+    status: "ongoing",
+    type: "seminar",
+    health: "high_relationship_roi",
     start_at: iso(-2 * HOUR),
     city: "Munich",
     location: "TUM Garching, MW 0001",
@@ -82,9 +82,9 @@ export const MOCK_EVENTS: EventSummary[] = [
   {
     id: "ev-2",
     title: "Würth Elektronik Tech Talk: Power Magnetics",
-    status: "completed",
+    status: "past",
     type: "technical_talk",
-    health: "completed",
+    health: "good_awareness",
     start_at: iso(-9 * DAY),
     city: "Stuttgart",
     location: "Uni Stuttgart, V7.01",
@@ -99,7 +99,7 @@ export const MOCK_EVENTS: EventSummary[] = [
     title: "RedExpert Hackathon",
     status: "planned",
     type: "hackathon",
-    health: "at_risk",
+    health: "weak_followup",
     start_at: iso(12 * DAY),
     city: "Munich",
     location: "TUM Think Tank",
@@ -113,8 +113,8 @@ export const MOCK_EVENTS: EventSummary[] = [
     id: "ev-4",
     title: "Career Fair — Electronics & Mechatronics",
     status: "planned",
-    type: "career_fair",
-    health: "on_track",
+    type: "career_fair_booth",
+    health: "good_awareness",
     start_at: iso(26 * DAY),
     city: "Karlsruhe",
     location: "KIT Audimax Foyer",
@@ -127,9 +127,9 @@ export const MOCK_EVENTS: EventSummary[] = [
   {
     id: "ev-5",
     title: "Lab Tour: EMC & Antenna Design",
-    status: "completed",
-    type: "lab_tour",
-    health: "critical",
+    status: "past",
+    type: "excursion",
+    health: "likely_underperforming",
     start_at: iso(-21 * DAY),
     city: "Munich",
     location: "Würth Elektronik Munich Office",
@@ -145,12 +145,12 @@ export const MOCK_EVENT_DETAIL: Record<string, EventDetail> = {
   "ev-1": {
     id: "ev-1",
     title: "Embedded Systems Workshop @ TUM",
-    type: "workshop",
+    type: "seminar",
     city: "Munich",
     location: "TUM Garching, MW 0001",
     start_at: iso(-2 * HOUR),
-    health: "healthy",
-    status: "live",
+    health: "high_relationship_roi",
+    status: "ongoing",
     description:
       "Hands-on workshop on power-efficient embedded design using Würth Elektronik components. Students build and measure a buck-converter reference design.",
     goal: "Convert 30+ qualified leads and seed the RedExpert Hackathon pipeline.",
@@ -158,6 +158,11 @@ export const MOCK_EVENT_DETAIL: Record<string, EventDetail> = {
     cost: 4800,
     human_capital: "3 engineers, 1 recruiter",
     owner: { display_name: "Lena Hoffmann" },
+    owner_name: "Lena Hoffmann",
+    partner_university: "TU München",
+    image_url: null,
+    images: [],
+    application_required: false,
     analysis: {
       summary:
         "Check-in pace is 12% ahead of the workshop benchmark; engagement is strong but follow-up capacity is the bottleneck.",
@@ -177,7 +182,7 @@ export const MOCK_STUDENTS: StudentRow[] = [
     display_name: "Jonas Becker",
     university: "Technical University of Munich",
     target_group: "EE MSc",
-    last_event: { title: "Embedded Systems Workshop @ TUM", type: "workshop" },
+    last_event: { title: "Embedded Systems Workshop @ TUM", type: "seminar" },
     interest_tags: ["embedded", "power electronics", "internship"],
     interaction_status: "qualified",
     latest_activity_at: iso(-3 * HOUR),
@@ -242,7 +247,7 @@ export const MOCK_STUDENTS: StudentRow[] = [
     display_name: "Ahmed Khan",
     university: "Technical University of Munich",
     target_group: "EE MSc",
-    last_event: { title: "Lab Tour: EMC & Antenna Design", type: "lab_tour" },
+    last_event: { title: "Lab Tour: EMC & Antenna Design", type: "excursion" },
     interest_tags: ["RF", "antenna", "EMC"],
     interaction_status: "interested",
     latest_activity_at: iso(-19 * DAY),
@@ -296,7 +301,7 @@ export const MOCK_STUDENTS: StudentRow[] = [
     display_name: "Lukas Bauer",
     university: "Technical University of Munich",
     target_group: "EE MSc",
-    last_event: { title: "Embedded Systems Workshop @ TUM", type: "workshop" },
+    last_event: { title: "Embedded Systems Workshop @ TUM", type: "seminar" },
     interest_tags: ["embedded", "firmware", "thesis"],
     interaction_status: "qualified",
     latest_activity_at: iso(-1 * HOUR),
@@ -513,16 +518,16 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
 ];
 
 export const MOCK_NEXT_BEST_EVENTS: NextBestEvent[] = [
-  { id: "nb-1", title: "Embedded Workshop @ RWTH Aachen", confidence: 0.83, suggested_type: "workshop", suggested_location: "Aachen", target_group: "EE MSc", reason: "Mirrors your best-performing format in a region with no recent presence." },
+  { id: "nb-1", title: "Embedded Workshop @ RWTH Aachen", confidence: 0.83, suggested_type: "seminar", suggested_location: "Aachen", target_group: "EE MSc", reason: "Mirrors your best-performing format in a region with no recent presence." },
   { id: "nb-2", title: "RF & Antenna Deep-Dive @ TUM", confidence: 0.71, suggested_type: "technical_talk", suggested_location: "Munich", target_group: "EE MSc", reason: "Strong RF interest cluster from the EMC lab tour." },
-  { id: "nb-3", title: "Power Magnetics Workshop @ Uni Stuttgart", confidence: 0.66, suggested_type: "workshop", suggested_location: "Stuttgart", target_group: "Mechatronics", reason: "Tech-talk attendees asked for a hands-on follow-up." },
+  { id: "nb-3", title: "Power Magnetics Workshop @ Uni Stuttgart", confidence: 0.66, suggested_type: "seminar", suggested_location: "Stuttgart", target_group: "Mechatronics", reason: "Tech-talk attendees asked for a hands-on follow-up." },
 ];
 
 // ── Per-event collections ─────────────────────────────────────────────────────
 export const MOCK_ATTENDEES: Record<string, Attendee[]> = {
   "ev-1": [
-    { user_id: "st-1", display_name: "Jonas Becker", university: "TU Munich", returning: true, checked_in_at: iso(-2 * HOUR), checked_out_at: null },
-    { user_id: "st-5", display_name: "Lukas Bauer", university: "TU Munich", returning: false, checked_in_at: iso(-2 * HOUR + 5 * 60 * 1000), checked_out_at: null },
+    { user_id: "st-1", display_name: "Jonas Becker", university: "TU Munich", returning: true, checked_in_at: iso(-2 * HOUR), full_session: true },
+    { user_id: "st-5", display_name: "Lukas Bauer", university: "TU Munich", returning: false, checked_in_at: iso(-2 * HOUR + 5 * 60 * 1000), full_session: false },
   ],
 };
 
@@ -569,9 +574,9 @@ export const MOCK_PREDICTION: Record<string, EventPrediction> = {
 
 export const MOCK_NEXT_BEST_STEPS: Record<string, NextBestStep[]> = {
   "ev-1": [
-    { id: "ns-1", action: "Assign owners to the 9 open follow-ups", rationale: "Leads cool fast; same-day ownership doubles conversion.", priority: "high", creates_follow_up: false },
-    { id: "ns-2", action: "Send the workshop slide deck to all attendees", rationale: "Keeps the brand top-of-mind and drives material engagement.", priority: "medium", creates_follow_up: true },
-    { id: "ns-3", action: "Invite top 5 engaged students to the hackathon", rationale: "Warm pipeline for the at-risk RedExpert Hackathon.", priority: "medium", creates_follow_up: true },
+    { id: "ns-1", kind: "contact", action: "Assign owners to the 9 open follow-ups", rationale: "Leads cool fast; same-day ownership doubles conversion.", priority: "high", creates_follow_up: false, contact_user_id: null, contact_name: null },
+    { id: "ns-2", kind: "upload_slides", action: "Send the workshop slide deck to all attendees", rationale: "Keeps the brand top-of-mind and drives material engagement.", priority: "medium", creates_follow_up: true, contact_user_id: null, contact_name: null },
+    { id: "ns-3", kind: "contact", action: "Invite top 5 engaged students to the hackathon", rationale: "Warm pipeline for the at-risk RedExpert Hackathon.", priority: "medium", creates_follow_up: true, contact_user_id: null, contact_name: null },
   ],
 };
 
@@ -596,7 +601,7 @@ export function addMockEvent(input: CreateEventInput): {
     title,
     status: "planned",
     type: input.type,
-    health: "on_track",
+    health: "good_awareness",
     start_at: startIso,
     city: input.city || null,
     location: input.location || null,
@@ -626,7 +631,7 @@ export function addMockEvent(input: CreateEventInput): {
     city: summary.city,
     location: summary.location,
     start_at: startIso,
-    health: "on_track",
+    health: "good_awareness",
     status: "planned",
     description: input.goal || "Newly planned event.",
     goal: input.goal || null,
@@ -634,6 +639,11 @@ export function addMockEvent(input: CreateEventInput): {
     cost: input.cost ?? null,
     human_capital: input.human_capital || null,
     owner: null,
+    owner_name: null,
+    partner_university: input.partner_university || null,
+    image_url: null,
+    images: [],
+    application_required: false,
     analysis: null,
   };
 

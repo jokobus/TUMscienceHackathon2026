@@ -24,9 +24,13 @@ class Settings(BaseSettings):
     # Seed demo data when the DB is empty
     seed_on_startup: bool = True
 
-    # Optional AI provider
+    # Optional AI provider. OpenRouter (OpenAI-style) is preferred when its key is
+    # set; Anthropic is the fallback. Both are optional — the AI features degrade to
+    # deterministic heuristics when neither key is configured.
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-fable-5"
+    openrouter_api_key: str = ""
+    openrouter_model: str = "anthropic/claude-3.5-sonnet"
 
     @property
     def cors_origin_list(self) -> list[str]:

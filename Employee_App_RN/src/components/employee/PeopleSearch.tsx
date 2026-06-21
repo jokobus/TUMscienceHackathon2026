@@ -17,7 +17,10 @@ export function PeopleSearch({ open, onClose }: { open: boolean; onClose: () => 
   useEffect(() => {
     if (!open) return;
     let active = true;
-    api.searchPeople(query).then((r) => active && setResults(r));
+    api
+      .searchPeople(query)
+      .then((r) => active && setResults(r))
+      .catch(() => active && setResults([]));
     return () => {
       active = false;
     };

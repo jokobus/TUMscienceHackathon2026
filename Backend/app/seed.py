@@ -11,6 +11,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import (
+    Application,
+    ApplicationAnswer,
+    ApplicationQuestion,
     Chat,
     ChatParticipant,
     EmployeeProfile,
@@ -19,6 +22,7 @@ from app.models import (
     EventRegistration,
     EventResponsibleEmployee,
     EventSentiment,
+    EventSuggestion,
     Feedback,
     HostReport,
     Interaction,
@@ -28,9 +32,11 @@ from app.models import (
     Message,
     Notification,
     StudentProfile,
+    SuggestionVote,
     User,
     UserInterest,
 )
+from app.event_ingest import ingest_events_json
 from app.scoring import recompute_and_cache
 from app.security import hash_password
 
@@ -87,6 +93,10 @@ EVENTS = [
          target="Partner-university students", goal="Employer branding",
          images=[IMG.format("1565514020179-026b92b84bb6")]),
 ]
+
+# §9: events ingested from the WE events page carry source=scraped; the rest are
+# created manually in the dashboard. A mix lets the scrape-ingestion path be demoed.
+SCRAPED_EVENT_IDS = {"evt-1", "evt-8", "evt-6"}
 
 # attendees: (event, user, checked_in, full_session)
 ATTENDEES = [
@@ -190,6 +200,45 @@ NOTIFICATIONS = [
     ("no-4", "emp-1", "improvement", "Tip · Plant Tour registrations", "Only 12 of 30 slots filled for the Sept plant tour. Consider a reminder broadcast to past attendees.", "evt-6", "2026-06-17T15:00:00Z", "2026-06-17T16:00:00Z"),
 ]
 
+# Capture-a-Memory threads (mem-301 backs interaction i-308). (id, event, author, parent, body, created_at)
+MEMORIES = [
+    ("mem-301", "evt-3", "stu-1", None, "Day 2 and our GaN power stage is finally switching clean 🎉 huge thanks to the WE FAEs at the booth.", "2026-06-20T12:02:00Z"),
+    ("mem-302", "evt-3", "stu-2", "mem-301", "Congrats! Which gate driver did you end up using?", "2026-06-20T12:18:00Z"),
+    ("mem-303", "evt-3", "stu-4", None, "Soldering the RF front-end was tricky but the mentors helped us debug the matching network.", "2026-06-20T13:05:00Z"),
+    ("mem-101", "evt-1", "stu-4", None, "Met the FAE team at embedded world — the RedExpert demo sold me on applying. Great booth!", "2026-03-13T15:10:00Z"),
+]
+
+# Requests board (Reddit-style). (id, title, description, proposer, source_event_id, repost_count, created_at)
+SUGGESTIONS = [
+    ("sug-1", "RISC-V & Embedded Linux Bootcamp", "A hands-on weekend on RISC-V SoCs and embedded Linux using Würth Elektronik dev boards.", "stu-3", None, 0, "2026-05-02T09:00:00Z"),
+    ("sug-2", "More power-magnetics design workshops", "Loved the magnetics content at the tech talk — please run a dedicated design-in workshop.", "stu-2", None, 0, "2026-05-10T14:00:00Z"),
+    ("sug-8", "Repeat: WE Student Team Kickoff — eMobility", "Bring back the Formula Student eMobility kickoff — the design-in support was invaluable.", "stu-2", "evt-8", 2, "2026-05-15T10:00:00Z"),
+]
+
+# (id, suggestion_id, user_id, value)
+SUGGESTION_VOTES = [
+    ("sv-1", "sug-1", "stu-1", 1), ("sv-2", "sug-1", "stu-2", 1), ("sv-3", "sug-1", "stu-4", 1), ("sv-4", "sug-1", "stu-5", -1),
+    ("sv-5", "sug-2", "stu-1", 1), ("sv-6", "sug-2", "stu-4", 1),
+    ("sv-7", "sug-8", "stu-2", 1), ("sv-8", "sug-8", "stu-3", 1), ("sv-9", "sug-8", "stu-1", 1),
+]
+
+# Apply flow. evt-4 (TUM Industry Day booth) requires an application. (id, event, question_text, position)
+APPLICATION_QUESTIONS = [
+    ("aq-401", "evt-4", "Why do you want to join Würth Elektronik?", 0),
+    ("aq-402", "evt-4", "Which area interests you most (Hardware, FAE, Sales, Data)?", 1),
+]
+
+# (id, event, applicant, status, submitted_at, [(question_id, answer_text), ...])  (app-101 backs interaction i-104)
+APPLICATIONS = [
+    ("app-401", "evt-4", "stu-1", "under_review", "2026-06-15T10:00:00Z",
+     [("aq-401", "Würth components are everywhere in our hackathon projects — I want hands-on power-electronics experience."),
+      ("aq-402", "Hardware & Field Application Engineering.")]),
+    ("app-402", "evt-4", "stu-5", "submitted", "2026-06-16T11:30:00Z",
+     [("aq-401", "Strong interest in data-driven product engineering at a hardware company."),
+      ("aq-402", "Data.")]),
+    ("app-101", "evt-1", "stu-4", "accepted", "2026-03-13T09:10:00Z", []),
+]
+
 INTEREST_TAGS = {
     "Hardware & Core Engineering": ["Power Electronics", "RF & Wireless", "PCB Design", "Embedded Systems"],
     "Industrial & Manufacturing Tech": ["Automation", "eMobility", "Robotics", "Production"],
@@ -239,7 +288,8 @@ def seed(db: Session) -> None:
             id=e["id"], title=e["title"], type=e["type"], description=e["description"], city=e["city"],
             location=e["location"], start_at=dt(e["start"]), end_at=dt(e["end"]), target_group=e["target"],
             goal=e["goal"], partner_university=e["partner"], owner_employee_id=e["owner"], status=e["status"],
-            images=e["images"], live_analytics_enabled=e["live"], source="manual",
+            images=e["images"], live_analytics_enabled=e["live"],
+            source="scraped" if e["id"] in SCRAPED_EVENT_IDS else "manual",
             cost=12000 if e["status"] == "past" else None,
         ))
     db.flush()
@@ -295,9 +345,70 @@ def seed(db: Session) -> None:
                             payload={"title": title, "body": body, "event_id": ev},
                             created_at=dt(created), read_at=dt(read) if read else None))
 
+    student_email = {s[0]: s[1] for s in STUDENTS}
+
+    # Memories (Capture a Memory) — mem-301 backs the seeded memory_post interaction.
+    for mid, ev, author, parent, body, ts in MEMORIES:
+        db.add(Memory(id=mid, event_id=ev, author_user_id=author, parent_id=parent,
+                      body=body, is_public=True, created_at=dt(ts)))
+
+    # Suggestions / Requests board + votes.
+    for sid_, title, desc, proposer, src, reposts, ts in SUGGESTIONS:
+        db.add(EventSuggestion(id=sid_, title=title, description=desc, proposer_user_id=proposer,
+                               proposer_email=student_email.get(proposer), source_event_id=src,
+                               repost_count=reposts, created_at=dt(ts)))
+    db.flush()
+    for vid, sug, uid, val in SUGGESTION_VOTES:
+        db.add(SuggestionVote(id=vid, suggestion_id=sug, user_id=uid, value=val))
+
+    # Applications (Apply flow). Mark the application-gated event required + seed questions.
+    app_event = db.get(Event, "evt-4")
+    if app_event:
+        app_event.application_required = True
+    for qid, ev, text, pos in APPLICATION_QUESTIONS:
+        db.add(ApplicationQuestion(id=qid, event_id=ev, question_text=text, position=pos))
+    db.flush()
+    for aid, ev, applicant, status, ts, answers in APPLICATIONS:
+        db.add(Application(id=aid, event_id=ev, applicant_user_id=applicant,
+                           applicant_email=student_email.get(applicant), status=status,
+                           submitted_at=dt(ts)))
+        db.flush()
+        for qid, atext in answers:
+            db.add(ApplicationAnswer(id=f"ans-{aid}-{qid}", application_id=aid,
+                                     question_id=qid, answer_text=atext))
+
+    # Ingest the full scraped Würth events catalogue (mock_data/events.json) so the
+    # DB — not any client-side mock — is the single source of truth for all events.
+    # Past/ongoing entries also get synthesised KPI rows so the dashboard is alive.
+    ingest_events_json(db)
+
+    # Seed a few follow-ups on past events so the dashboard's contextual follow-up
+    # feature has real data to act on (DASH-18). Created after events exist.
+    _seed_follow_ups(db)
+
     db.commit()
 
-    # cache engagement scores
+    # cache engagement scores (now includes ingested-event interactions)
     for sid, *_ in STUDENTS:
         recompute_and_cache(db, sid)
     db.commit()
+
+
+# (id, event, contact_user, owner, next_action, kind, status)
+FOLLOW_UPS = [
+    ("fu-1", "evt-1", "stu-1", "emp-1", "Send the FAE working-student role details to Nakulan and book a call.", "contact", "open"),
+    ("fu-2", "evt-1", "stu-4", "emp-1", "Share the post-event slide deck with Thiviyan.", "upload_slides", "open"),
+    ("fu-3", "evt-8", "stu-2", "emp-1", "Follow up with Michael on the eMobility design-in support.", "contact", "open"),
+]
+
+
+def _seed_follow_ups(db: Session) -> None:
+    from app.models import FollowUp
+
+    for fid, ev, contact, owner, action, kind, status in FOLLOW_UPS:
+        if db.get(FollowUp, fid):
+            continue
+        if not db.get(Event, ev):
+            continue
+        db.add(FollowUp(id=fid, event_id=ev, contact_user_id=contact, assigned_owner_id=owner,
+                        next_action=action, type=kind, status=status))

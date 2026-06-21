@@ -25,7 +25,7 @@ export default function EventsScreen() {
   useEffect(() => {
     if (!employee) return;
     setEvents(null);
-    api.getMyEvents(employee.id).then(setEvents);
+    api.getMyEvents(employee.id).then(setEvents).catch(() => setEvents([]));
   }, [employee]);
 
   const filtered = useMemo(() => {

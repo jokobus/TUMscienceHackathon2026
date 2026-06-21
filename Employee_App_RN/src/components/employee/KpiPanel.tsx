@@ -46,7 +46,7 @@ export function KpiPanel({ eventId }: { eventId: string }) {
   const [kpis, setKpis] = useState<EventKpis | null>(null);
 
   useEffect(() => {
-    api.getEventKpis(eventId).then(setKpis);
+    api.getEventKpis(eventId).then(setKpis).catch(() => {});
   }, [eventId]);
 
   if (!kpis) {

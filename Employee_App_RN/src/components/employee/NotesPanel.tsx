@@ -18,7 +18,7 @@ export function NotesPanel({ eventId }: { eventId: string }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.getNotes(eventId).then(setNotes);
+    api.getNotes(eventId).then(setNotes).catch(() => setNotes([]));
   }, [eventId]);
 
   async function add() {

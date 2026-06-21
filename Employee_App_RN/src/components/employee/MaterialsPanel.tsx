@@ -44,7 +44,7 @@ export function MaterialsPanel({ eventId }: { eventId: string }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.getMaterials(eventId).then(setMaterials);
+    api.getMaterials(eventId).then(setMaterials).catch(() => setMaterials([]));
   }, [eventId]);
 
   async function add() {

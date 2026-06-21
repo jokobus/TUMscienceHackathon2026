@@ -32,7 +32,7 @@ export default function MessagesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      api.getChats().then(setChats);
+      api.getChats().then(setChats).catch(() => setChats([]));
     }, [])
   );
 

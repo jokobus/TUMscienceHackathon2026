@@ -242,6 +242,28 @@ export interface Message {
   body: string;
   sentAt: string;
   isBroadcast?: boolean;
+  // Client-side only: correlates an optimistic message with the server echo
+  // (mirrors the backend's client_msg_id) and flags it as not-yet-confirmed.
+  clientMsgId?: string;
+  pending?: boolean;
+}
+
+// ── Applications (event participation requests) ──────────────────────────────
+export type ApplicationStatus = "submitted" | "under_review" | "accepted" | "rejected";
+
+export interface ApplicationAnswer {
+  questionId: string;
+  answerText: string;
+}
+
+export interface Application {
+  id: string;
+  eventId: string;
+  applicantUserId?: string;
+  applicantEmail: string;
+  status: ApplicationStatus;
+  submittedAt: string;
+  answers: ApplicationAnswer[];
 }
 
 export interface PersonSearchResult {

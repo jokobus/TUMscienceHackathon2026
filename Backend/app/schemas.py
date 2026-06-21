@@ -11,12 +11,21 @@ from typing import Annotated, Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict, PlainSerializer
 
 
-def _iso(dt: datetime | None) -> str | None:
+def iso_z(dt: datetime | None) -> str | None:
+    """Single source of truth for datetime → UTC `...Z` strings (MASTER §4).
+
+    Hand-built dicts (routers that don't go through a Pydantic response_model)
+    import this so every datetime on the wire carries the trailing `Z`.
+    """
     if dt is None:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# Backwards-compatible alias used by the Pydantic serializers below.
+_iso = iso_z
 
 
 Dt = Annotated[datetime, PlainSerializer(_iso, return_type=str, when_used="json")]
@@ -78,6 +87,8 @@ class EventKpisOut(Schema):
     recommendation_score: float
     nps_score: int | None = None
     follow_ups_open: int
+    returning_users: int = 0
+    cost_per_lead: float | None = None
 
 
 class EventSummaryOut(Schema):
@@ -94,6 +105,7 @@ class EventSummaryOut(Schema):
     is_owner: bool = False
     relationship_roi: int = 0
     image_url: str | None = None
+    images: list[str] = []
 
 
 class EventDetailOut(EventSummaryOut):
@@ -102,6 +114,9 @@ class EventDetailOut(EventSummaryOut):
     goal: str | None = None
     partner_university: str | None = None
     owner_employee_id: str | None = None
+    owner_name: str | None = None
+    cost: float | None = None
+    human_capital: str | None = None
     responsible_employee_ids: list[str] = []
     live_analytics_enabled: bool = False
     kpis: EventKpisOut
@@ -158,6 +173,7 @@ class AttendeeOut(Schema):
     study_degree: str | None = None
     checked_in_at: OptDt = None
     full_session: bool = False
+    returning: bool = False
     lead_status: Literal["qualified", "checked_in", "registered"]
 
 
@@ -287,10 +303,15 @@ class MessageOut(Schema):
     body: str
     sent_at: Dt
     is_broadcast: bool = False
+    client_msg_id: str | None = None
 
 
 class MessageCreateRequest(Schema):
     body: str
+    # Optional client-generated correlation id. Echoed back on the WS frame so a
+    # client can reconcile its optimistic bubble with the authoritative server row
+    # (prevents the "double-paste then disappears" duplicate).
+    client_msg_id: str | None = None
 
 
 class ChatCreateRequest(Schema):

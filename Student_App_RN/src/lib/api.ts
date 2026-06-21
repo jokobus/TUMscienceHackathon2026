@@ -293,8 +293,14 @@ export async function getMessages(chatId: string): Promise<Message[]> {
   return request<Message[]>("GET", `/api/chats/${chatId}/messages`);
 }
 
-export async function sendMessage(chatId: string, body: string): Promise<Message> {
-  return request<Message>("POST", `/api/chats/${chatId}/messages`, { body });
+export async function sendMessage(
+  chatId: string,
+  body: string,
+  clientMsgId?: string
+): Promise<Message> {
+  // `clientMsgId` is snake_cased to `client_msg_id` at the http boundary; the
+  // server echoes it back over the socket so we can reconcile the optimistic row.
+  return request<Message>("POST", `/api/chats/${chatId}/messages`, { body, clientMsgId });
 }
 
 export async function searchPeople(query: string): Promise<PersonSearchResult[]> {

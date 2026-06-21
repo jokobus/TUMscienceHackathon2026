@@ -53,7 +53,7 @@ export function InteractionsPanel({ eventId }: { eventId: string }) {
   const [items, setItems] = useState<Interaction[] | null>(null);
 
   useEffect(() => {
-    api.getInteractions(eventId).then(setItems);
+    api.getInteractions(eventId).then(setItems).catch(() => setItems([]));
   }, [eventId]);
 
   if (!items) return <ListSkeleton rows={4} />;

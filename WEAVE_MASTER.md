@@ -2,13 +2,19 @@
 
 > **TUM Science Hackathon · Würth Elektronik Challenge**
 
+## 0. Resolved Conflicts & Architecture Notes
+
+- **Client stack (resolved):** the **Würth Dashboard** is Next.js (App Router) on Vercel; the **Student App** and **Employee App** are **Expo / React-Native** (iOS native + RN-web), **not** Next.js. All three consume the same §6 contract and convert snake_case⇄camelCase at the network boundary.
+- **AGENT specs:** `AGENT_BACKEND.md` and `AGENT_WUERTH_DASHBOARD.md` exist; the Student and Employee apps live directly under `Student_App_RN/` and `Employee_App_RN/` (no separate `AGENT_STUDENT_APP.md` / `AGENT_EMPLOYEE_APP.md`).
+- **Named decisions (implemented in code):** 5-tab bottom nav with a center camera FAB (Student); a single event-detail `analysis` path (no separate analytics screen); "Invoices" renamed to the Communication Hub.
+
 ## 1. System Architecture
 
 ```
 ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
 │   Student App     │   │  Würth Dashboard │   │   Employee App    │
-│  Next.js / React  │   │  Next.js / React │   │  Next.js / React  │
-│  mobile + web     │   │  desktop web     │   │  mobile           │
+│  Expo/React-Native│   │  Next.js / React │   │  Expo/React-Native│
+│  iOS + RN-web     │   │  desktop web     │   │  iOS              │
 │  PUBLIC-facing    │   │  INTERNAL        │   │  INTERNAL         │
 └────────┬─────────┘   └────────┬─────────┘   └────────┬─────────┘
          │                      │                      │
@@ -33,7 +39,7 @@
 ```
 
 **Stack**
-- **Frontend (all 3 clients):** Next.js (App Router) + React + Tailwind. Deployed on **Vercel**.
+- **Frontend:** the **Würth Dashboard** is Next.js (App Router) + React + Tailwind on **Vercel**; the **Student** and **Employee** apps are **Expo / React-Native** (NativeWind/Tailwind), running on iOS and RN-web. All three share the §6 REST + §7 WS contract.
 - **Backend:** Python + **FastAPI** (REST) and an ASGI **WebSocket** endpoint for chat. Hosted separately (Railway/Render) or run locally for the demo.
 - **DB:** **SQLite** for the hackathon (single file, zero-setup) — schema is Postgres-compatible. Optionally Supabase.
 - **AI:** one LLM provider (Anthropic or Gemini) for AI event search + Opportunity-Explorer assistant.
@@ -46,11 +52,11 @@
 
 | Module | Owner agent | Folders it owns | Owns these endpoints |
 |--------|-------------|-----------------|----------------------|
-| **Student App** | `AGENT_STUDENT_APP.md` | `frontend/app/(student)/**`, `frontend/components/student/**` | none (consumes) |
-| **Würth Dashboard** | `AGENT_WUERTH_DASHBOARD.md` | `frontend/app/(dashboard)/**`, `frontend/components/dashboard/**` | none (consumes) |
-| **Employee App** | `AGENT_EMPLOYEE_APP.md` | `frontend/app/(employee)/**`, `frontend/components/employee/**` | none (consumes) |
-| **Backend** | `AGENT_BACKEND.md` | `backend/**` | **all** endpoints + WS server + DB + seed |
-| **Shared (read-only for FE)** | Backend owns, FE imports | `frontend/lib/types.ts`, `frontend/lib/api.ts` | — |
+| **Student App** (Expo/RN) | owned in-repo (no AGENT spec) | `Student_App_RN/src/**` | none (consumes) |
+| **Würth Dashboard** (Next.js) | `AGENT_WUERTH_DASHBOARD.md` | `Dashboard_App/**` | none (consumes) |
+| **Employee App** (Expo/RN) | owned in-repo (no AGENT spec) | `Employee_App_RN/src/**` | none (consumes) |
+| **Backend** | `AGENT_BACKEND.md` | `Backend/app/**` | **all** endpoints + WS server + DB + seed |
+| **Shared (read-only for FE)** | Backend owns the contract | each client's `lib/types.ts` (`Dashboard_App/lib`, `*_App_RN/src/lib`) | — |
 
 **No-collision rules**
 1. Each human + their agent works on **one Git branch** (`student-app`, `dashboard`, `employee-app`, `backend`). Never push directly to `main`; merge via Pull Request.

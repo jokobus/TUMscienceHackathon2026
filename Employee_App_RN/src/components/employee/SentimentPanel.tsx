@@ -43,8 +43,8 @@ export function SentimentPanel({
   const [saving, setSaving] = useState(false);
 
   const refresh = useCallback(() => {
-    api.getSentiment(eventId).then(setEntries);
-    if (liveEnabled) api.getLiveAnalytics(eventId).then(setAnalytics);
+    api.getSentiment(eventId).then(setEntries).catch(() => setEntries([]));
+    if (liveEnabled) api.getLiveAnalytics(eventId).then(setAnalytics).catch(() => {});
   }, [eventId, liveEnabled]);
 
   useEffect(() => {
@@ -53,7 +53,10 @@ export function SentimentPanel({
 
   useEffect(() => {
     if (!liveEnabled) return;
-    const id = setInterval(() => api.getLiveAnalytics(eventId).then(setAnalytics), 8000);
+    const id = setInterval(
+      () => api.getLiveAnalytics(eventId).then(setAnalytics).catch(() => {}),
+      8000
+    );
     return () => clearInterval(id);
   }, [eventId, liveEnabled]);
 

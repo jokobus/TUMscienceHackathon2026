@@ -10,9 +10,10 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.messaging import post_message, recipients_for_chat
-from app.models import Chat, ChatParticipant
+from app.models import Chat, ChatParticipant, Event
 from app.realtime import manager
 from app.security import decode_token
+from app.services import chat_live_highlight
 
 router = APIRouter()
 
@@ -32,6 +33,45 @@ def _chat_recipients(chat_id: str, exclude: str | None = None) -> list[str]:
     finally:
         db.close()
     return [i for i in ids if i != exclude]
+
+
+def _contacts_of(user_id: str) -> list[str]:
+    """Everyone who shares at least one chat with this user (for presence fan-out)."""
+    db = SessionLocal()
+    try:
+        chat_ids = list(
+            db.scalars(select(ChatParticipant.chat_id).where(ChatParticipant.user_id == user_id))
+        )
+        contacts = (
+            set(
+                db.scalars(
+                    select(ChatParticipant.user_id).where(ChatParticipant.chat_id.in_(chat_ids))
+                )
+            )
+            if chat_ids
+            else set()
+        )
+    finally:
+        db.close()
+    contacts.discard(user_id)
+    return list(contacts)
+
+
+def _channel_highlight_frame(chat_id: str) -> dict | None:
+    """A `channel_highlight` frame (§7) if `chat_id` is an event channel; else None."""
+    db = SessionLocal()
+    try:
+        chat = db.get(Chat, str(chat_id))
+        if not chat or chat.type != "event_channel" or not chat.event_id:
+            return None
+        event = db.get(Event, chat.event_id)
+        active = chat_live_highlight(event)
+        return {
+            "action": "channel_highlight",
+            "payload": {"chatId": chat.id, "eventId": chat.event_id, "active": active},
+        }
+    finally:
+        db.close()
 
 
 @router.websocket("/ws/chat")
@@ -67,11 +107,12 @@ async def chat_socket(ws: WebSocket, token: str | None = None):
             if action == "send_message":
                 chat_id = payload.get("chatId")
                 body = payload.get("message", "")
+                client_msg_id = payload.get("clientMsgId")
                 if chat_id and body:
                     # post_message persists + fans out to all recipients via the manager.
                     db = SessionLocal()
                     try:
-                        post_message(db, str(chat_id), user_id, body)
+                        post_message(db, str(chat_id), user_id, body, client_msg_id=client_msg_id)
                     finally:
                         db.close()
 
@@ -100,16 +141,20 @@ async def chat_socket(ws: WebSocket, token: str | None = None):
 
             elif action == "presence":
                 status = payload.get("status", "online")
-                # naive: notify everyone we share a chat with is overkill; echo to self for now
-                await ws.send_json(
-                    {"action": "presence_update", "payload": {"userId": user_id, "status": status}}
-                )
+                frame = {"action": "presence_update", "payload": {"userId": user_id, "status": status}}
+                # Fan out to everyone we share a chat with (§7), plus echo to self.
+                await manager.send_to_users(_contacts_of(user_id), frame)
+                await ws.send_json(frame)
 
             elif action == "join_chat":
-                # subscription is implicit (we deliver by participant); ack only
-                await ws.send_json(
-                    {"action": "joined", "payload": {"chatId": payload.get("chatId")}}
-                )
+                # subscription is implicit (we deliver by participant); ack…
+                chat_id = payload.get("chatId")
+                await ws.send_json({"action": "joined", "payload": {"chatId": chat_id}})
+                # …then surface the §7 channel_highlight for live event channels.
+                if chat_id:
+                    highlight = _channel_highlight_frame(str(chat_id))
+                    if highlight:
+                        await ws.send_json(highlight)
 
     except WebSocketDisconnect:
         manager.disconnect(user_id, ws)

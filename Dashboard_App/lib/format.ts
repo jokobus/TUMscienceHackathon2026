@@ -15,46 +15,63 @@ import type {
 
 export type BadgeTone = "good" | "warn" | "risk" | "neutral" | "info";
 
-// ── Event type ────────────────────────────────────────────────────────────────
+// ── Event type (WEAVE_MASTER.md §5.1) ───────────────────────────────────────────
 export const EVENT_TYPE_LABEL: Record<EventType, string> = {
-  technical_talk: "Technical Talk",
-  workshop: "Workshop",
   hackathon: "Hackathon",
-  recruiting_talk: "Recruiting Talk",
-  lab_tour: "Lab Tour",
-  career_fair: "Career Fair",
-  networking: "Networking",
+  guest_lecture: "Guest Lecture",
+  career_fair_booth: "Career Fair Booth",
+  excursion: "Excursion",
+  student_team: "Student Team",
+  technical_talk: "Technical Talk",
+  one_on_one: "1:1 Meeting",
+  seminar: "Seminar",
+  webinar: "Webinar",
+  conference: "Conference",
+  trade_fair: "Trade Fair",
+  other: "Other",
 };
 
-// ── Event health ──────────────────────────────────────────────────────────────
+// ── Event health (WEAVE_MASTER.md §5.1) ─────────────────────────────────────────
 export const EVENT_HEALTH_LABEL: Record<EventHealth, string> = {
-  healthy: "Healthy",
-  on_track: "On Track",
-  at_risk: "At Risk",
-  critical: "Needs Attention",
-  completed: "Completed",
+  high_relationship_roi: "High Relationship ROI",
+  strong_brand_retention: "Strong Brand Retention",
+  high_engagement_needs_followup: "High Engagement · Needs Follow-up",
+  good_awareness: "Good Awareness",
+  low_continuity: "Low Continuity",
+  weak_followup: "Weak Follow-up",
+  likely_underperforming: "Likely Underperforming",
+  needs_review: "Needs Review",
+  insufficient_data: "Insufficient Data",
 };
 
 export const EVENT_HEALTH_TONE: Record<EventHealth, BadgeTone> = {
-  healthy: "good",
-  on_track: "good",
-  at_risk: "warn",
-  critical: "risk",
-  completed: "neutral",
+  high_relationship_roi: "good",
+  strong_brand_retention: "good",
+  high_engagement_needs_followup: "warn",
+  good_awareness: "info",
+  low_continuity: "warn",
+  weak_followup: "warn",
+  likely_underperforming: "risk",
+  needs_review: "warn",
+  insufficient_data: "neutral",
 };
 
-// ── Event status ──────────────────────────────────────────────────────────────
+// ── Event status (WEAVE_MASTER.md §5.1) ─────────────────────────────────────────
 export const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
+  draft: "Draft",
   planned: "Planned",
-  live: "Live",
-  completed: "Completed",
+  upcoming: "Upcoming",
+  ongoing: "Ongoing",
+  past: "Past",
   cancelled: "Cancelled",
 };
 
 export const EVENT_STATUS_TONE: Record<EventStatus, BadgeTone> = {
+  draft: "neutral",
   planned: "info",
-  live: "good",
-  completed: "neutral",
+  upcoming: "info",
+  ongoing: "good",
+  past: "neutral",
   cancelled: "risk",
 };
 

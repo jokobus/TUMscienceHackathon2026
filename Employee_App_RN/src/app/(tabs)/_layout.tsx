@@ -14,7 +14,10 @@ export default function TabsLayout() {
   useFocusEffect(
     useCallback(() => {
       if (employee) {
-        api.getChats().then((c) => setUnread(c.reduce((n, x) => n + x.unread, 0)));
+        api
+          .getChats()
+          .then((c) => setUnread(c.reduce((n, x) => n + x.unread, 0)))
+          .catch(() => {});
       }
     }, [employee])
   );

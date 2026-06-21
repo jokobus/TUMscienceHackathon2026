@@ -23,6 +23,22 @@ interface TabBarProps {
   navigation: { navigate: (name: string) => void };
 }
 
+/**
+ * Loose recursive nav-state shape — react-navigation's own types are far stricter,
+ * so we read defensively here (routes may carry a nested child `state`).
+ */
+type LooseNavState = {
+  index?: number;
+  routes?: { name?: string; state?: LooseNavState }[];
+};
+
+/** Name of the deepest focused leaf route inside a (possibly nested) nav state. */
+function focusedLeafName(state: LooseNavState | undefined): string | undefined {
+  const route = state?.routes?.[state.index ?? 0];
+  if (route?.state) return focusedLeafName(route.state);
+  return route?.name;
+}
+
 const TAB_META: Record<string, { name: string; icon: LucideIcon }> = {
   feed: { name: "Feed", icon: Home },
   requests: { name: "Requests", icon: PlusCircle },
@@ -62,6 +78,13 @@ export function StudentTabBar({ state, navigation }: TabBarProps) {
   }, [user]);
 
   const activeName = state.routes[state.index]?.name;
+  // Deepest focused route — lets us go full-screen on the event-detail screen
+  // (feed/[id]) by hiding the whole tab bar there, while normal tabs keep it.
+  const leafName = focusedLeafName(state as LooseNavState);
+  const onEventDetail = leafName === "[id]";
+
+  // Live Event button opens the detail screen, which hides this bar → full-screen.
+  if (onEventDetail) return null;
 
   const renderItem = (routeKey: string) => {
     const meta = TAB_META[routeKey];
@@ -93,8 +116,9 @@ export function StudentTabBar({ state, navigation }: TabBarProps) {
     >
       <GlassFill glassStyle="regular" />
 
-      {/* Current Event FAB (live only) */}
-      {liveEventId && (
+      {/* Current Event FAB (live only) — hidden on the Chat tab so it never
+          overlaps the chat composer's Send button. */}
+      {liveEventId && activeName !== "chat" && (
         <Pressable
           onPress={() => router.push(`/(tabs)/feed/${liveEventId}` as any)}
           style={{ position: "absolute", right: 16, top: -64, zIndex: 60 }}
@@ -122,17 +146,17 @@ export function StudentTabBar({ state, navigation }: TabBarProps) {
       <View
         pointerEvents="box-none"
         className="absolute inset-x-0 items-center"
-        style={{ top: -8 }}
+        style={{ top: -24 }}
       >
         <Pressable
           onPress={() => router.push("/camera")}
           className={cn(
-            "h-12 w-12 items-center justify-center overflow-hidden rounded-full shadow-lg active:scale-95",
+            "h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-lg active:scale-95",
             liquidGlass ? "" : "bg-we-red"
           )}
         >
-          <GlassFill tint={we.red} interactive radius={24} />
-          <ScanLine size={20} color="#fff" />
+          <GlassFill tint={we.red} interactive radius={32} />
+          <ScanLine size={29} color="#fff" />
         </Pressable>
       </View>
     </View>

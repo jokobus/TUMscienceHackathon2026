@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import gen_id, get_db
 from app.deps import get_current_user
 from app.errors import forbidden, not_found
-from app.messaging import post_message
+from app.messaging import mark_chat_read, post_message
 from app.models import (
     Chat,
     ChatParticipant,
@@ -29,6 +29,17 @@ def _my_chats(db: Session, user_id: str) -> list[Chat]:
         db.scalars(select(ChatParticipant.chat_id).where(ChatParticipant.user_id == user_id))
     )
     return list(db.scalars(select(Chat).where(Chat.id.in_(chat_ids))))
+
+
+def _is_member(db: Session, chat_id: str, user_id: str) -> bool:
+    return (
+        db.scalar(
+            select(ChatParticipant).where(
+                ChatParticipant.chat_id == chat_id, ChatParticipant.user_id == user_id
+            )
+        )
+        is not None
+    )
 
 
 def _existing_dm(db: Session, a: str, b: str) -> str | None:
@@ -141,7 +152,13 @@ def create_chat(
 def chat_messages(chat_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if not db.get(Chat, chat_id):
         raise not_found("Chat not found.")
-    rows = db.scalars(select(Message).where(Message.chat_id == chat_id).order_by(Message.sent_at))
+    if not _is_member(db, chat_id, user.id):
+        raise forbidden("You are not a participant in this conversation.")
+    rows = list(db.scalars(select(Message).where(Message.chat_id == chat_id).order_by(Message.sent_at)))
+    # Opening a chat (fetching its messages) marks them read for the viewer, so the
+    # unread badge clears — students have no single-chat GET, so this is their only
+    # mark-read path.
+    mark_chat_read(db, rows, user.id)
     return [message_to_dict(db, m) for m in rows]
 
 
@@ -154,4 +171,6 @@ def send_message(
 ):
     if not db.get(Chat, chat_id):
         raise not_found("Chat not found.")
-    return post_message(db, chat_id, user.id, body.body)
+    if not _is_member(db, chat_id, user.id):
+        raise forbidden("You are not a participant in this conversation.")
+    return post_message(db, chat_id, user.id, body.body, client_msg_id=body.client_msg_id)

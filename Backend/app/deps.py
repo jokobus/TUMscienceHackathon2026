@@ -58,6 +58,10 @@ def require_employee(user: User = Depends(get_current_user)) -> User:
 
 
 def require_student(user: User = Depends(get_current_user)) -> User:
-    if user.role not in ("student", "guest"):
-        raise forbidden("Students only.")
+    """Guard for student-only endpoints (§6.2 memories/repost, §6.3 employee
+    scan, §6.4 profile, §6.5 suggestions). Guests are authenticated but role-
+    limited — they can browse and check in, but cannot use these student
+    surfaces (matching the contract and the app's stated guest limits)."""
+    if user.role != "student":
+        raise forbidden("This action requires a student account.")
     return user

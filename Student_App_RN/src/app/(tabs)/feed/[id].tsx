@@ -32,7 +32,7 @@ import type {
   WeaveEvent,
 } from "@/lib/types";
 import * as api from "@/lib/api";
-import { addRegistered, removeRegistered } from "@/lib/registered";
+import { addRegistered, getRegisteredIds, removeRegistered } from "@/lib/registered";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -66,7 +66,7 @@ const INTERESTS: { type: InteractionType; label: string }[] = [
 ];
 
 export default function EventDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, scanned } = useLocalSearchParams<{ id: string; scanned?: string }>();
   const insets = useSafeAreaInsets();
   const { toast } = useToast();
   const { isStudent, user } = useAuth();
@@ -74,7 +74,9 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<WeaveEvent | null>(null);
   const [tab, setTab] = useState<Tab>("info");
   const [applied, setApplied] = useState(false);
-  const [attended, setAttended] = useState(false);
+  // Arriving from a successful QR scan ⇒ already checked in; reflect it immediately
+  // so the primary button shows "Checked-in ✓" without a "Check In" flash.
+  const [attended, setAttended] = useState(scanned === "1");
 
   const [memories, setMemories] = useState<Memory[]>([]);
   const [memoryText, setMemoryText] = useState("");
@@ -96,14 +98,42 @@ export default function EventDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    api.getEvent(id).then(setEvent).catch(() => setEvent(null));
+    // Backend is the source of truth for registration/check-in. The live event
+    // (and any event the student is registered to) reports viewerRegistered /
+    // viewerCheckedIn, so the screen shows "Registered ✓ / Checked-in ✓" instead
+    // of offering to register again.
+    api
+      .getEvent(id)
+      .then((ev) => {
+        setEvent(ev);
+        if (ev.viewerRegistered) setApplied(true);
+        if (ev.viewerCheckedIn) setAttended(true);
+      })
+      .catch(() => setEvent(null));
+    // Also hydrate from the persisted local store as a fallback (offline / mock
+    // mode, or before the backend round-trip lands) so the File Drive + Memory
+    // tabs survive a reload without a re-check-in.
+    getRegisteredIds()
+      .then((ids) => {
+        if (ids.includes(id)) {
+          setApplied(true);
+          setAttended(true);
+        }
+      })
+      .catch(() => {});
   }, [id]);
 
   const isPast = event ? new Date(event.endAt).getTime() < Date.now() : false;
   const isStarted = event ? Date.now() >= new Date(event.startAt).getTime() || isPast : false;
   const sameDay = event ? isSameDay(event.startAt, event.endAt) : false;
+  // Files + Memory subpages are available once an attended event has started —
+  // this covers both the current/live event and past events the user attended.
+  // Future (not-yet-started) events stay tab-less.
   const showFileDrive = isStarted && attended;
   const showMemory = isStarted && attended;
+  // The Memory composer is gated server-side to checked-in attendees from
+  // start_at onward; disable it locally too once the event is over.
+  const canPostMemory = isStarted && attended && !isPast;
 
   const loadMemories = useCallback(() => {
     if (id) api.getMemories(id).then(setMemories).catch(() => {});
@@ -225,11 +255,11 @@ export default function EventDetailScreen() {
     }
   }
 
-  async function onInterest(type: InteractionType, label: string) {
+  async function onInterest(type: InteractionType, _label: string) {
     if (!requireStudent()) return;
     try {
       await api.logInteraction(type, id);
-      toast(`${label} ✓`);
+      // No success toast — the chip's selected highlight is feedback enough.
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not send.", "error");
     }
@@ -264,13 +294,11 @@ export default function EventDetailScreen() {
   async function onOpenFile(m: Material) {
     api.logInteraction("file_view", id, { material_id: m.id }).catch(() => {});
     if (m.url && m.url !== "#") Linking.openURL(m.url).catch(() => {});
-    toast(`Opening ${m.title}…`);
   }
 
   async function onDownloadFile(m: Material) {
     api.logInteraction("file_download", id, { material_id: m.id }).catch(() => {});
     if (m.url && m.url !== "#") Linking.openURL(m.url).catch(() => {});
-    toast(`Downloading ${m.title}…`);
   }
 
   if (!event) {
@@ -432,8 +460,8 @@ export default function EventDetailScreen() {
           {/* Tabs */}
           <View className="mb-8 flex-row border-b border-gray-200">
             {tabBtn("info", "Information")}
-            {showFileDrive && tabBtn("files", "File Drive")}
-            {showMemory && tabBtn("memory", "Capture a Memory")}
+            {showFileDrive && tabBtn("files", "Files")}
+            {showMemory && tabBtn("memory", "Memory")}
           </View>
 
           {/* Information */}
@@ -497,6 +525,15 @@ export default function EventDetailScreen() {
                       className="flex-1 flex-row items-center justify-center rounded-xl border border-we-red px-6 py-3"
                     >
                       <Text className="font-bold text-we-red">Check In</Text>
+                    </Pressable>
+                  )}
+
+                  {isStarted && attended && (
+                    <Pressable
+                      disabled
+                      className="flex-1 flex-row items-center justify-center rounded-xl border border-green-200 bg-green-100 px-6 py-3"
+                    >
+                      <Text className="font-bold text-green-800">Checked-in ✓</Text>
                     </Pressable>
                   )}
 
@@ -612,19 +649,34 @@ export default function EventDetailScreen() {
                   <TextInput
                     value={memoryText}
                     onChangeText={setMemoryText}
-                    placeholder={replyTo ? "Write a reply..." : "Share your experience..."}
+                    editable={canPostMemory}
+                    placeholder={
+                      canPostMemory
+                        ? replyTo
+                          ? "Write a reply..."
+                          : "Share your experience..."
+                        : "Posting is closed for this event."
+                    }
                     placeholderTextColor="#9ca3af"
                     className="flex-1 px-2 text-sm text-we-ink"
                   />
                   <Pressable
                     onPress={() => setShowImageInput((v) => !v)}
-                    className="h-10 w-10 items-center justify-center rounded-full bg-gray-200"
+                    disabled={!canPostMemory}
+                    className={cn(
+                      "h-10 w-10 items-center justify-center rounded-full bg-gray-200",
+                      !canPostMemory && "opacity-40"
+                    )}
                   >
                     <ImagePlus size={20} color="#4b5563" />
                   </Pressable>
                   <Pressable
                     onPress={() => onPostMemory(showImageInput && !!imageUrl)}
-                    className="h-10 w-10 items-center justify-center rounded-full bg-we-red"
+                    disabled={!canPostMemory}
+                    className={cn(
+                      "h-10 w-10 items-center justify-center rounded-full bg-we-red",
+                      !canPostMemory && "opacity-40"
+                    )}
                   >
                     <Send size={16} color="#fff" />
                   </Pressable>

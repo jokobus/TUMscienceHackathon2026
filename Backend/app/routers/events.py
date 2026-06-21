@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from app.ai import search_events
 from app.db import gen_id, get_db
 from app.deps import get_current_user, get_optional_user, require_student
-from app.errors import bad_request, not_found
+from app.errors import bad_request, forbidden, not_found
+from app.schemas import iso_z
 from app.models import (
     Application,
     ApplicationAnswer,
@@ -30,7 +31,7 @@ from app.scoring import recompute_and_cache
 router = APIRouter(prefix="/api/events", tags=["events"])
 
 
-def _public_event(event: Event) -> dict:
+def _public_event(event: Event, reg: EventRegistration | None = None) -> dict:
     return {
         "id": event.id,
         "title": event.title,
@@ -38,17 +39,22 @@ def _public_event(event: Event) -> dict:
         "description": event.description,
         "city": event.city,
         "location": event.location,
-        "start_at": event.start_at.isoformat(),
-        "end_at": event.end_at.isoformat(),
+        "start_at": iso_z(event.start_at),
+        "end_at": iso_z(event.end_at),
         "status": event.status,
         "target_group": event.target_group,
         "goal": event.goal,
         "partner_university": event.partner_university,
         "images": event.images or [],
         "application_required": event.application_required,
-        "application_open_at": event.application_open_at.isoformat() if event.application_open_at else None,
-        "application_close_at": event.application_close_at.isoformat() if event.application_close_at else None,
+        "application_open_at": iso_z(event.application_open_at),
+        "application_close_at": iso_z(event.application_close_at),
         "files_after_event": event.files_after_event,
+        # The viewer's own registration/check-in state for this event, when known.
+        # Lets the client reflect "Registered ✓ / Checked-in ✓" from the backend
+        # source of truth instead of a device-local guess.
+        "viewer_registered": reg is not None,
+        "viewer_checked_in": reg is not None and reg.checked_in_at is not None,
     }
 
 
@@ -57,10 +63,11 @@ def feed(
     type: str | None = Query(None),
     city: str | None = Query(None),
     timeframe: str | None = Query(None),
+    attended: bool | None = Query(None),
     sort: str = Query("date"),
     limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
-    _: User | None = Depends(get_optional_user),
+    user: User | None = Depends(get_optional_user),
 ):
     stmt = select(Event).where(Event.status != "draft")
     if type:
@@ -73,6 +80,15 @@ def feed(
         events = [e for e in events if _aware(e.end_at) >= now]
     elif timeframe == "past":
         events = [e for e in events if _aware(e.end_at) < now]
+    # §6.2 `attended` filter — restrict to the caller's registered events.
+    # Needs auth; with no token the filter is a no-op rather than an error.
+    if attended is not None and user is not None:
+        my_event_ids = set(
+            db.scalars(
+                select(EventRegistration.event_id).where(EventRegistration.user_id == user.id)
+            )
+        )
+        events = [e for e in events if (e.id in my_event_ids) == attended]
     events.sort(key=lambda e: e.start_at, reverse=(sort == "recency"))
     return {"items": [_public_event(e) for e in events[:limit]], "next_cursor": None}
 
@@ -97,16 +113,26 @@ def current_event(db: Session = Depends(get_db), user: User = Depends(get_curren
         start = _aware(event.start_at) - timedelta(hours=2)
         end = _aware(event.end_at) + timedelta(hours=2)
         if start <= now <= end:
-            return _public_event(event)
+            return _public_event(event, r)
     return None
 
 
 @router.get("/{event_id}")
-def event_detail(event_id: str, db: Session = Depends(get_db), _: User | None = Depends(get_optional_user)):
+def event_detail(
+    event_id: str, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)
+):
     event = db.get(Event, event_id)
     if not event:
         raise not_found("Event not found.")
-    return _public_event(event)
+    reg = None
+    if user is not None:
+        reg = db.scalar(
+            select(EventRegistration).where(
+                EventRegistration.event_id == event_id,
+                EventRegistration.user_id == user.id,
+            )
+        )
+    return _public_event(event, reg)
 
 
 @router.get("/{event_id}/files")
@@ -125,7 +151,7 @@ def event_files(event_id: str, db: Session = Depends(get_db), user: User = Depen
                 "type": m.type,
                 "title": m.title,
                 "url": m.url,
-                "upload_date": m.upload_date.isoformat(),
+                "upload_date": iso_z(m.upload_date),
             }
             for m in mats
         ],
@@ -150,7 +176,7 @@ def list_memories(event_id: str, db: Session = Depends(get_db), _: User | None =
                 "parent_id": m.parent_id,
                 "body": m.body,
                 "images": images,
-                "created_at": m.created_at.isoformat(),
+                "created_at": iso_z(m.created_at),
             }
         )
     return {"items": out, "next_cursor": None}
@@ -163,8 +189,19 @@ def post_memory(
     db: Session = Depends(get_db),
     user: User = Depends(require_student),
 ):
-    if not db.get(Event, event_id):
+    event = db.get(Event, event_id)
+    if not event:
         raise not_found("Event not found.")
+    # §6.2: memories are attendee-only, from start_at onward.
+    reg = db.scalar(
+        select(EventRegistration).where(
+            EventRegistration.event_id == event_id, EventRegistration.user_id == user.id
+        )
+    )
+    if not reg or not reg.checked_in_at:
+        raise forbidden("Only checked-in attendees can post a memory for this event.")
+    if _aware(event.start_at) > datetime.now(timezone.utc):
+        raise forbidden("Memories open once the event has started.")
     mem = Memory(
         id=gen_id("mem"),
         event_id=event_id,
@@ -229,8 +266,8 @@ def get_application(event_id: str, db: Session = Depends(get_db), _: User | None
     )
     return {
         "required": event.application_required,
-        "open_at": event.application_open_at.isoformat() if event.application_open_at else None,
-        "close_at": event.application_close_at.isoformat() if event.application_close_at else None,
+        "open_at": iso_z(event.application_open_at),
+        "close_at": iso_z(event.application_close_at),
         "questions": [{"id": q.id, "question_text": q.question_text, "position": q.position} for q in questions],
     }
 

@@ -23,6 +23,7 @@ from app.schemas import (
     EmployeeProfileUpdate,
     EventSummaryOut,
     NotificationOut,
+    iso_z,
 )
 from app.services import build_event_summary
 
@@ -127,4 +128,4 @@ def mark_notification_read(
     if not n.read_at:
         n.read_at = datetime.now(timezone.utc)
         db.commit()
-    return {"id": n.id, "read_at": n.read_at.isoformat() if n.read_at else None}
+    return {"id": n.id, "read_at": iso_z(n.read_at)}

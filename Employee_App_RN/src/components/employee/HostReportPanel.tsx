@@ -48,7 +48,7 @@ export function HostReportPanel({ eventId }: { eventId: string }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.getHostReport(eventId).then(setExisting);
+    api.getHostReport(eventId).then(setExisting).catch(() => setExisting(null));
   }, [eventId]);
 
   function hydrate(r: HostReport) {

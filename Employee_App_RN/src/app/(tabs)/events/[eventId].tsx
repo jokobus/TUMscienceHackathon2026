@@ -13,6 +13,7 @@ import { NotesPanel } from "@/components/employee/NotesPanel";
 import { SentimentPanel } from "@/components/employee/SentimentPanel";
 import { QrPanel } from "@/components/employee/QrPanel";
 import { BroadcastPanel } from "@/components/employee/BroadcastPanel";
+import { ApplicationsPanel } from "@/components/employee/ApplicationsPanel";
 import { MaterialsPanel } from "@/components/employee/MaterialsPanel";
 import { HostReportPanel } from "@/components/employee/HostReportPanel";
 import { Card } from "@/components/ui/Card";
@@ -22,7 +23,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { eventTypeLabel, formatDateRange } from "@/lib/utils";
 import { wuerth } from "@/theme";
 
-type Tab = "overview" | "people" | "live" | "files";
+type Tab = "overview" | "people" | "applications" | "live" | "files";
 
 const isUpcoming = (e: EventDetail) =>
   e.status === "upcoming" || e.status === "planned" || e.status === "draft";
@@ -38,10 +39,17 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 export default function EventDetailScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const [event, setEvent] = useState<EventDetail | null>(null);
+  const [error, setError] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
 
   useEffect(() => {
-    if (eventId) api.getEvent(eventId).then(setEvent);
+    if (!eventId) return;
+    setEvent(null);
+    setError(false);
+    // Always handle rejection: an expired session or unreachable backend would
+    // otherwise surface as an "unhandled promise rejection" instead of a clean
+    // error state.
+    api.getEvent(eventId).then(setEvent).catch(() => setError(true));
   }, [eventId]);
 
   return (
@@ -50,7 +58,11 @@ export default function EventDetailScreen() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="border-b border-wuerth-line bg-white px-5 pb-4 pt-3">
-          {!event ? (
+          {error ? (
+            <Text className="text-base font-semibold text-wuerth-ink">
+              Couldn&apos;t load this event
+            </Text>
+          ) : !event ? (
             <>
               <Skeleton className="h-5 w-2/3" />
               <Skeleton className="mt-2.5 h-4 w-1/2" />
@@ -94,9 +106,11 @@ export default function EventDetailScreen() {
 
         <View className="px-4 py-2.5">
           <SegmentedControl<Tab>
+            scroll
             segments={[
               { value: "overview", label: "Overview" },
               { value: "people", label: "People" },
+              { value: "applications", label: "Applications" },
               { value: "live", label: "Live" },
               { value: "files", label: "Files" },
             ]}
@@ -106,7 +120,15 @@ export default function EventDetailScreen() {
         </View>
 
         <View className="px-4 pb-6">
-          {!event ? (
+          {error ? (
+            <Card className="items-center px-6 py-10">
+              <Text className="text-sm font-bold text-wuerth-ink">Something went wrong</Text>
+              <Text className="mt-1 max-w-[18rem] text-center text-sm text-wuerth-mute">
+                We couldn&apos;t load this event. Check your connection or sign in again, then
+                try reopening it.
+              </Text>
+            </Card>
+          ) : !event ? (
             <Skeleton className="h-40 rounded-2xl" />
           ) : (
             <>
@@ -123,6 +145,17 @@ export default function EventDetailScreen() {
                     <SectionHeader>Interactions</SectionHeader>
                     <InteractionsPanel eventId={event.id} />
                   </View>
+                </View>
+              )}
+
+              {tab === "applications" && (
+                <View>
+                  <SectionHeader>Applications</SectionHeader>
+                  <ApplicationsPanel eventId={event.id} />
+                  <Text className="mt-3 px-1 text-xs text-wuerth-mute">
+                    Accepting an application registers that person as an attendee — they then
+                    receive your broadcasts in the event channel.
+                  </Text>
                 </View>
               )}
 

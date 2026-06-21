@@ -5,9 +5,10 @@ import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { EventCards } from "@/components/events/EventCards";
 import { getDashboardKpis } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { ErrorState } from "@/components/ui/States";
 
 export default function DashboardPage() {
-  const { data: kpis, loading } = useAsync(() => getDashboardKpis(), []);
+  const { data: kpis, loading, error } = useAsync(() => getDashboardKpis(), []);
 
   const today = new Date().toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -29,7 +30,11 @@ export default function DashboardPage() {
 
       {/* ── 01 Global KPIs / Performance alternative ── */}
       <Reveal as="section" className="mb-16">
-        <DashboardInsights kpis={kpis} loading={loading} />
+        {error ? (
+          <ErrorState message={error} />
+        ) : (
+          <DashboardInsights kpis={kpis} loading={loading} />
+        )}
       </Reveal>
 
       {/* ── 02 Events ── */}

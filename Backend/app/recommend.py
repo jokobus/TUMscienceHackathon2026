@@ -12,13 +12,17 @@ from sqlalchemy.orm import Session
 from app.db import gen_id
 from app.enums import PredictionOutcome
 from app.kpis import compute_event_kpis
-from app.models import Event, FollowUp, Interaction, StudentProfile, User
+from app.models import Event, FollowUp, Interaction, Material, StudentProfile, User
 from app.scoring import compute_user_score, is_qualified_lead
 
 
 # ── Next Best Steps for one event ────────────────────────────────────────────
 def next_best_steps_for_event(db: Session, event_id: str) -> list[dict]:
+    """Contextual next-best-steps. Each step carries a `kind` so the UI can render
+    the right action: `contact` opens a chat to the lead; `upload_slides` opens a
+    material upload (DASH-18)."""
     steps: list[dict] = []
+    event = db.get(Event, event_id)
     ix = db.scalars(select(Interaction).where(Interaction.event_id == event_id))
     by_user: dict[str, list[Interaction]] = defaultdict(list)
     for i in ix:
@@ -35,12 +39,32 @@ def next_best_steps_for_event(db: Session, event_id: str) -> list[dict]:
             score = compute_user_score(db, uid, event_id)
             steps.append(
                 {
+                    "kind": "contact",
                     "contact_user_id": uid,
                     "contact_name": user.display_name if user else uid,
-                    "recommended_action": "Schedule a personal follow-up — qualified lead with no next step.",
+                    "recommended_action": f"Message {user.display_name if user else 'this lead'} — qualified lead with no next step.",
                     "urgency": "high" if score >= 25 else "medium",
                     "confidence": min(0.95, 0.5 + score / 100),
                     "reason": f"Engagement score {score} with no follow-up assigned yet.",
+                }
+            )
+
+    # Past events without slides on the File Drive: suggest uploading them so
+    # attendees can review the material (a contextual, non-contact follow-up).
+    if event and event.status == "past":
+        has_slides = db.scalar(
+            select(Material.id).where(Material.event_id == event_id, Material.type == "slides").limit(1)
+        )
+        if not has_slides:
+            steps.append(
+                {
+                    "kind": "upload_slides",
+                    "contact_user_id": None,
+                    "contact_name": None,
+                    "recommended_action": "Upload the event slides so attendees can review them.",
+                    "urgency": "medium",
+                    "confidence": 0.6,
+                    "reason": "This past event has no slide deck on the File Drive yet.",
                 }
             )
 

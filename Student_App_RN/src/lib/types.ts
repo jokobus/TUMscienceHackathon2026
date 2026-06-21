@@ -62,6 +62,11 @@ export interface WeaveEvent {
   applicationOpenAt?: string | null;
   applicationCloseAt?: string | null;
   filesAfterEvent: boolean;
+  // The viewer's own registration/check-in state, from the backend. Present on
+  // the event-detail and current-event responses; absent (undefined) in the feed
+  // list and offline mock data.
+  viewerRegistered?: boolean;
+  viewerCheckedIn?: boolean;
 }
 
 export interface Material {
@@ -150,6 +155,10 @@ export interface Message {
   body: string;
   sentAt: string;
   isBroadcast?: boolean;
+  /** Client-generated id echoed back by the server, used to reconcile optimistic sends. */
+  clientMsgId?: string | null;
+  /** True while an optimistic message is in-flight (not yet confirmed by the server). */
+  pending?: boolean;
 }
 
 export interface PersonSearchResult {

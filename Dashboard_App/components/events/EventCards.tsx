@@ -26,6 +26,14 @@ const DOT: Record<BadgeTone, string> = {
   info: "bg-status-info",
 };
 
+// Neutral, bundled placeholder (inline SVG data-URI) — used only when an event has
+// no image. Events from the DB always carry image_url, so this is the rare path.
+const PLACEHOLDER_IMG =
+  "data:image/svg+xml;charset=utf-8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520"><rect width="800" height="520" fill="#f4f4f5"/><path d="M0 400 L260 250 L440 360 L580 270 L800 420 L800 520 L0 520 Z" fill="#e4e4e7"/><circle cx="620" cy="150" r="56" fill="#e4e4e7"/></svg>`,
+  );
+
 export function EventCards() {
   const { data, loading } = useAsync(() => getEvents(), []);
   const [view, setView] = useState<"cards" | "timeline">("cards");
@@ -168,9 +176,16 @@ function TimelinePreview({ ev }: { ev: EventSummary }) {
       <div className="relative aspect-[16/9] overflow-hidden bg-we-canvas">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={ev.image_url ?? `https://picsum.photos/seed/${ev.id}/800/520`}
+          src={ev.image_url ?? PLACEHOLDER_IMG}
           alt={city}
           loading="lazy"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (!img.dataset.fb) {
+              img.dataset.fb = "1";
+              img.src = PLACEHOLDER_IMG;
+            }
+          }}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
       </div>
@@ -213,14 +228,14 @@ function EventCard({ ev }: { ev: EventSummary }) {
       <div className="relative aspect-[16/10] overflow-hidden bg-we-canvas">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={ev.image_url ?? `https://picsum.photos/seed/${ev.id}/800/520`}
+          src={ev.image_url ?? PLACEHOLDER_IMG}
           alt={city}
           loading="lazy"
           onError={(e) => {
             const img = e.currentTarget;
             if (!img.dataset.fb) {
               img.dataset.fb = "1";
-              img.src = `https://picsum.photos/seed/${ev.id}/800/520`;
+              img.src = PLACEHOLDER_IMG;
             }
           }}
           className="h-full w-full object-cover transition-transform duration-500 ease-premium group-hover:scale-[1.04]"

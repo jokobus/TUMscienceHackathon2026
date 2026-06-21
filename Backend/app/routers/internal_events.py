@@ -6,13 +6,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import gen_id, get_db
 from app.deps import require_employee
-from app.errors import not_found
+from app.enums import ApplicationStatus
+from app.errors import bad_request, not_found, unprocessable
 from app.kpis import compute_event_kpis
 from app.messaging import get_or_create_event_channel, post_message
 from app.models import (
@@ -23,6 +24,7 @@ from app.models import (
     ChatParticipant,
     Event,
     EventNote,
+    EventRegistration,
     EventResponsibleEmployee,
     EventSentiment,
     HostReport,
@@ -52,6 +54,7 @@ from app.schemas import (
     ScanStudentResponse,
     SentimentCreateRequest,
 )
+from app.schemas import iso_z
 from app.scoring import recompute_and_cache
 from app.services import build_attendees, build_event_detail, build_event_summary
 
@@ -222,7 +225,7 @@ def list_applications(event_id: str, db: Session = Depends(get_db), _: User = De
                 "applicant_user_id": a.applicant_user_id,
                 "applicant_email": a.applicant_email,
                 "status": a.status,
-                "submitted_at": a.submitted_at.isoformat(),
+                "submitted_at": iso_z(a.submitted_at),
                 "answers": [{"question_id": an.question_id, "answer_text": an.answer_text} for an in answers],
             }
         )
@@ -240,9 +243,61 @@ def update_application(
     if not app_row:
         raise not_found("Application not found.")
     if "status" in body:
+        valid = {s.value for s in ApplicationStatus}
+        if body["status"] not in valid:
+            raise unprocessable(
+                f"Invalid application_status '{body['status']}'. Allowed: {sorted(valid)}."
+            )
         app_row.status = body["status"]
+        # Accepting an applicant must make them a real attendee: register them and
+        # add them to the event channel, so they appear in attendee lists/KPIs and
+        # — crucially — receive broadcasts (recipients_for_chat keys off these).
+        if body["status"] == ApplicationStatus.accepted:
+            _admit_applicant(db, app_row)
     db.commit()
     return {"id": app_row.id, "status": app_row.status}
+
+
+def _admit_applicant(db: Session, app_row: Application) -> None:
+    """Idempotently register an accepted applicant + add them to the event channel."""
+    if not app_row.applicant_user_id:
+        # Guest applicant — register by email only; no channel participant possible.
+        existing = db.scalar(
+            select(EventRegistration).where(
+                EventRegistration.event_id == app_row.event_id,
+                EventRegistration.email == app_row.applicant_email,
+                EventRegistration.user_id.is_(None),
+            )
+        )
+        if not existing:
+            db.add(EventRegistration(
+                id=gen_id("reg"), event_id=app_row.event_id, user_id=None,
+                email=app_row.applicant_email, source="applied",
+            ))
+        return
+
+    existing = db.scalar(
+        select(EventRegistration).where(
+            EventRegistration.event_id == app_row.event_id,
+            EventRegistration.user_id == app_row.applicant_user_id,
+        )
+    )
+    if not existing:
+        db.add(EventRegistration(
+            id=gen_id("reg"), event_id=app_row.event_id, user_id=app_row.applicant_user_id,
+            email=app_row.applicant_email, source="applied",
+        ))
+    channel = get_or_create_event_channel(db, app_row.event_id)
+    db.flush()
+    member = db.scalar(
+        select(ChatParticipant).where(
+            ChatParticipant.chat_id == channel.id,
+            ChatParticipant.user_id == app_row.applicant_user_id,
+        )
+    )
+    if not member:
+        db.add(ChatParticipant(chat_id=channel.id, user_id=app_row.applicant_user_id))
+    recompute_and_cache(db, app_row.applicant_user_id, app_row.event_id)
 
 
 # ── Materials (§6.10) ─────────────────────────────────────────────────────────
@@ -252,20 +307,61 @@ def list_materials(event_id: str, db: Session = Depends(get_db), _: User = Depen
     return list(db.scalars(select(Material).where(Material.event_id == event_id)))
 
 
+# Map a filename extension to a §5.1 material_type for uploaded files.
+_EXT_TO_MATERIAL_TYPE = {
+    "pdf": "pdf",
+    "ppt": "slides", "pptx": "slides", "key": "slides",
+    "png": "image", "jpg": "image", "jpeg": "image", "gif": "image", "webp": "image", "svg": "image",
+    "doc": "project_doc", "docx": "project_doc",
+}
+
+
+def _guess_material_type(filename: str) -> str:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    return _EXT_TO_MATERIAL_TYPE.get(ext, "follow_up_resource")
+
+
 @router.post("/events/{event_id}/materials", response_model=MaterialOut, status_code=201)
-def add_material(
+async def add_material(
     event_id: str,
-    body: MaterialCreateRequest,
+    request: Request,
     db: Session = Depends(get_db),
     emp: User = Depends(require_employee),
 ):
+    """Upload a material (§6.10). Accepts `multipart/form-data` with an optional
+    `file` (plus `title`/`type`/`url` form fields) **or** a JSON `{title, type, url}`
+    link reference — so both real file upload and link-only references work."""
     _get_event(db, event_id)
+    content_type = request.headers.get("content-type", "")
+    title = mtype = url = None
+
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+        title = (form.get("title") or "").strip() or None
+        mtype = (form.get("type") or "").strip() or None
+        url = (form.get("url") or "").strip() or None
+        upload = form.get("file")
+        filename = getattr(upload, "filename", None)
+        if filename:
+            # Demo backend has no object storage — persist a reference URL, not bytes.
+            url = url or f"upload://{filename}"
+            title = title or filename
+            mtype = mtype or _guess_material_type(filename)
+    else:
+        data = await request.json()
+        title = data.get("title")
+        mtype = data.get("type")
+        url = data.get("url")
+
+    if not title or not mtype:
+        raise bad_request("Material requires a title and a type (or an uploaded file).")
+
     mat = Material(
         id=gen_id("m"),
         event_id=event_id,
-        type=body.type,
-        title=body.title,
-        url=body.url or "#",
+        type=mtype,
+        title=title,
+        url=url or "#",
         uploaded_by=emp.id,
     )
     db.add(mat)
@@ -485,7 +581,34 @@ def broadcast(
     emp: User = Depends(require_employee),
 ):
     _get_event(db, event_id)
+    text = (body.get("body") or "").strip()
+    if not text:
+        raise bad_request("Broadcast message cannot be empty.")
     channel = get_or_create_event_channel(db, event_id)
+    db.flush()
+    # Ensure every attendee (registered users + responsible employees + sender) is a
+    # participant of the channel, so the broadcast reaches everyone and the channel
+    # appears in their chat list — even if they haven't opened it before.
+    existing = set(
+        db.scalars(select(ChatParticipant.user_id).where(ChatParticipant.chat_id == channel.id))
+    )
+    member_ids = set(
+        uid for uid in db.scalars(
+            select(EventRegistration.user_id).where(EventRegistration.event_id == event_id)
+        ) if uid
+    )
+    member_ids |= set(
+        db.scalars(
+            select(EventResponsibleEmployee.employee_id).where(
+                EventResponsibleEmployee.event_id == event_id
+            )
+        )
+    )
+    member_ids.add(emp.id)
+    for uid in member_ids - existing:
+        db.add(ChatParticipant(chat_id=channel.id, user_id=uid))
     db.commit()
-    message = post_message(db, channel.id, emp.id, body.get("body", ""), is_broadcast=True)
+    message = post_message(
+        db, channel.id, emp.id, text, is_broadcast=True, client_msg_id=body.get("clientMsgId")
+    )
     return message

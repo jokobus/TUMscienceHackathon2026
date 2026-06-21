@@ -59,5 +59,9 @@ def bad_request(message: str = "Bad request.") -> ApiError:
     return ApiError(400, "bad_request", message)
 
 
+def unprocessable(message: str = "Unprocessable entity.") -> ApiError:
+    return ApiError(422, "unprocessable", message)
+
+
 def conflict(message: str = "Conflict.") -> ApiError:
     return ApiError(409, "conflict", message)

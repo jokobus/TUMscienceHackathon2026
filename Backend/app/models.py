@@ -358,11 +358,22 @@ class QrToken(Base):
 
 
 class EngagementScore(Base):
-    __tablename__ = "engagement_scores"
+    """Cached engagement score (MASTER §8). Backend-only; never sent to students.
 
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    # SQLite/Postgres-portable: empty string means "global" (NULL not allowed in PK).
-    event_id: Mapped[str] = mapped_column(String(64), primary_key=True, default="")
+    `event_id` is a real, nullable FK to events — `NULL` is the global score
+    (matching §5.2). A surrogate `id` PK keeps the FK nullable on Postgres (a
+    composite PK can't contain a nullable column); uniqueness of (user, event)
+    is enforced by the unique constraint instead.
+    """
+
+    __tablename__ = "engagement_scores"
+    __table_args__ = (
+        UniqueConstraint("user_id", "event_id", name="uq_engagement_user_event"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    event_id: Mapped[str | None] = mapped_column(ForeignKey("events.id"), nullable=True)  # NULL = global
     score: Mapped[int] = mapped_column(Integer, default=0)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

@@ -52,14 +52,14 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => load(), [load]));
 
-  async function toggleInterest(tagId: number, name: string) {
+  async function toggleInterest(tagId: number, _name: string) {
     const next = selected.includes(tagId)
       ? selected.filter((id) => id !== tagId)
       : [...selected, tagId];
     setSelected(next);
     try {
       await api.setInterests(next);
-      toast(`Interest '${name}' updated`);
+      // No success toast — the chip's selected highlight is feedback enough.
     } catch {
       setSelected(selected); // revert
       toast("Could not update interests.", "error");
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
     try {
       const updated = await api.updateProfile({ consentVisibleToRecruiters: next });
       setProfile(updated);
-      toast(next ? "Visible to recruiters ✓" : "Hidden from recruiters");
+      // No success toast — the switch position is feedback enough.
     } catch (e) {
       setConsent(!next); // revert
       toast(e instanceof Error ? e.message : "Could not update.", "error");
@@ -106,7 +106,6 @@ export default function ProfileScreen() {
 
   async function onSignOut() {
     await logout();
-    toast("Signed out successfully");
     router.replace("/(tabs)/feed");
   }
 

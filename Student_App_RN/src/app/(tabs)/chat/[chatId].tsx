@@ -34,20 +34,40 @@ export default function ChatThreadScreen() {
     api.getMessages(chatId).then(setMessages).catch(() => {});
   }, [chatId]);
 
+  const myId = user?.id ?? api.currentUserId();
+
   useEffect(() => {
     return subscribe((e: WsEvent) => {
       if (e.action !== "new_message" && e.action !== "broadcast") return;
-      if (e.payload.chatId !== chatId) return;
+      // String-safe compare: defends against a numeric chatId on the wire.
+      if (String(e.payload.chatId) !== String(chatId)) return;
+      const senderId = String(e.payload.senderUserId ?? e.payload.from);
+      const clientMsgId = e.payload.clientMsgId != null ? String(e.payload.clientMsgId) : null;
       const incoming: Message = {
-        id: String(e.payload.messageId ?? Math.random()),
+        id: String(e.payload.messageId ?? clientMsgId ?? Math.random()),
         chatId: String(chatId),
-        senderUserId: String(e.payload.from),
+        senderUserId: senderId,
         senderName: String(e.payload.senderName ?? "Someone"),
         body: String(e.payload.message ?? e.payload.body ?? ""),
         sentAt: String(e.payload.sentAt ?? new Date().toISOString()),
         isBroadcast: Boolean(e.payload.isBroadcast) || e.action === "broadcast",
+        clientMsgId,
       };
-      setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
+      setMessages((prev) => {
+        // Reconcile our own optimistic row: swap it in place (keep position),
+        // adopting the server messageId and clearing the pending flag.
+        if (clientMsgId) {
+          const idx = prev.findIndex((m) => m.pending && m.clientMsgId === clientMsgId);
+          if (idx !== -1) {
+            const next = prev.slice();
+            next[idx] = { ...incoming, pending: false };
+            return next;
+          }
+        }
+        // Otherwise dedup by server messageId and append only if absent.
+        if (prev.some((m) => m.id === incoming.id)) return prev;
+        return [...prev, incoming];
+      });
     });
   }, [chatId]);
 
@@ -55,16 +75,43 @@ export default function ChatThreadScreen() {
     const body = draft.trim();
     if (!body || !chatId) return;
     setDraft("");
+    // Optimistically append so the bubble shows instantly; reconciled when the
+    // server fans the message back out (matched by clientMsgId).
+    const clientMsgId = `c-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: Message = {
+      id: clientMsgId,
+      chatId: String(chatId),
+      senderUserId: String(myId ?? ""),
+      senderName: user?.displayName ?? "You",
+      body,
+      sentAt: new Date().toISOString(),
+      clientMsgId,
+      pending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
     try {
-      const msg = await api.sendMessage(chatId, body);
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      const saved = await api.sendMessage(chatId, body, clientMsgId);
+      // The confirmed message normally arrives over the socket and replaces the
+      // optimistic row. Reconcile from the REST response too as a fallback (e.g.
+      // if the socket is down), and dedup so the later WS frame is a no-op.
+      setMessages((prev) => {
+        if (prev.some((m) => !m.pending && m.id === saved.id)) {
+          return prev.filter((m) => m.id !== clientMsgId);
+        }
+        const idx = prev.findIndex((m) => m.pending && m.id === clientMsgId);
+        if (idx === -1) return prev;
+        const next = prev.slice();
+        next[idx] = { ...optimistic, ...saved, clientMsgId, pending: false };
+        return next;
+      });
     } catch {
+      // Roll back the optimistic row and restore the draft for a retry.
+      setMessages((prev) => prev.filter((m) => m.id !== clientMsgId));
       setDraft(body);
     }
   }
 
   const isChannel = chat?.type === "event_channel";
-  const myId = user?.id ?? api.currentUserId();
 
   return (
     <KeyboardAvoidingView
@@ -103,7 +150,8 @@ export default function ChatThreadScreen() {
               <View
                 className={cn(
                   "max-w-[78%] rounded-2xl px-3 py-2",
-                  mine ? "bg-we-red" : "border border-wuerth-line bg-white"
+                  mine ? "bg-we-red" : "border border-wuerth-line bg-white",
+                  m.pending && "opacity-70"
                 )}
               >
                 {isChannel && !mine ? (
@@ -118,7 +166,7 @@ export default function ChatThreadScreen() {
                     mine ? "text-white/70" : "text-wuerth-mute"
                   )}
                 >
-                  {formatTime(m.sentAt)}
+                  {m.pending ? "Sending…" : formatTime(m.sentAt)}
                 </Text>
               </View>
             </View>

@@ -7,19 +7,39 @@
  * (lib/mockData.ts) produces them directly. JSON stays snake_case end-to-end.
  */
 
-// ── Enums / unions ────────────────────────────────────────────────────────────
+// ── Enums / unions (verbatim from WEAVE_MASTER.md §5.1) ──────────────────────────
 export type EventType =
-  | "technical_talk"
-  | "workshop"
   | "hackathon"
-  | "recruiting_talk"
-  | "lab_tour"
-  | "career_fair"
-  | "networking";
+  | "guest_lecture"
+  | "career_fair_booth"
+  | "excursion"
+  | "student_team"
+  | "technical_talk"
+  | "one_on_one"
+  | "seminar"
+  | "webinar"
+  | "conference"
+  | "trade_fair"
+  | "other";
 
-export type EventHealth = "healthy" | "on_track" | "at_risk" | "critical" | "completed";
+export type EventHealth =
+  | "high_relationship_roi"
+  | "strong_brand_retention"
+  | "high_engagement_needs_followup"
+  | "good_awareness"
+  | "low_continuity"
+  | "weak_followup"
+  | "likely_underperforming"
+  | "needs_review"
+  | "insufficient_data";
 
-export type EventStatus = "planned" | "live" | "completed" | "cancelled";
+export type EventStatus =
+  | "draft"
+  | "planned"
+  | "upcoming"
+  | "ongoing"
+  | "past"
+  | "cancelled";
 
 export type MaterialType =
   | "slides"
@@ -95,6 +115,11 @@ export interface EventDetail {
   cost: number | null;
   human_capital: string | null;
   owner: Person | null;
+  owner_name: string | null;
+  partner_university: string | null;
+  image_url: string | null;
+  images: string[];
+  application_required: boolean;
   analysis: { summary: string; highlights: string[] } | null;
 }
 
@@ -118,7 +143,7 @@ export interface Attendee {
   university: string | null;
   returning: boolean;
   checked_in_at: string | null;
-  checked_out_at: string | null;
+  full_session: boolean;
 }
 
 export interface EventInteraction {
@@ -183,6 +208,10 @@ export interface ChatMessage {
   sender: Person;
   body: string;
   sent_at: string;
+  /** Client-generated id for optimistic reconciliation (set on send/echo). */
+  client_msg_id?: string | null;
+  /** True while an optimistic message is awaiting its server echo. */
+  pending?: boolean;
 }
 
 export interface InternalChat {
@@ -211,12 +240,52 @@ export interface EventFollowUp {
   status: string;
 }
 
+// ── Memories (public event wall) ──────────────────────────────────────────────
+export interface EventMemory {
+  id: string;
+  author_name: string;
+  parent_id: string | null;
+  body: string;
+  images: string[];
+  created_at: string;
+}
+
+// ── Applications ──────────────────────────────────────────────────────────────
+export type ApplicationStatus = "submitted" | "accepted" | "rejected" | "under_review";
+
+export interface EventApplication {
+  id: string;
+  event_id: string;
+  applicant_user_id: string | null;
+  applicant_email: string | null;
+  status: string;
+  submitted_at: string;
+  answers: Array<{ question_id: string; answer_text: string }>;
+}
+
+// ── Live sentiment ────────────────────────────────────────────────────────────
+export interface LiveAnalytics {
+  enabled: boolean;
+  average_sentiment: number;
+  sample_count: number;
+  mood: string;
+  recent: Array<{ id: string; description: string; sentiment_value: number | null; created_at: string }>;
+}
+
+// ── Private notes ─────────────────────────────────────────────────────────────
+export interface EventNote {
+  id: string;
+  body: string;
+  author_employee_id: string;
+  created_at: string;
+}
+
 // ── Host report ──────────────────────────────────────────────────────────────
 export interface HostReport {
   organization_rating: number;
   audience_relevance_rating: number;
   interaction_quality_rating: number;
-  repeat_recommendation: "repeat" | "improve" | "avoid";
+  repeat_recommendation: "repeat" | "improve" | "stop";
   notes: string | null;
   suggested_improvements: string | null;
 }
@@ -241,10 +310,13 @@ export interface NextBestEvent {
 
 export interface NextBestStep {
   id: string;
+  kind: "contact" | "upload_slides";
   action: string;
   rationale: string;
   priority: string;
   creates_follow_up: boolean;
+  contact_user_id: string | null;
+  contact_name: string | null;
 }
 
 export interface EventPrediction {

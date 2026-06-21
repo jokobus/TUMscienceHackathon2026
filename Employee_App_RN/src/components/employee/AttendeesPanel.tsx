@@ -22,7 +22,7 @@ export function AttendeesPanel({ eventId }: { eventId: string }) {
   const [selected, setSelected] = useState<ProfilePerson | null>(null);
 
   useEffect(() => {
-    api.getAttendees(eventId).then(setAttendees);
+    api.getAttendees(eventId).then(setAttendees).catch(() => setAttendees([]));
   }, [eventId]);
 
   function openProfile(a: Attendee) {
